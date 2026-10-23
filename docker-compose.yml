@@ -1,0 +1,83 @@
+name: skeleton
+
+services:
+  api:
+    image: gradle:jdk25
+    container_name: skeleton-api
+    working_dir: /workspace
+    volumes:
+      - ./api:/workspace
+      # Reuse the host's Gradle dependency + wrapper caches
+      - ~/.gradle/caches:/home/gradle/.gradle/caches
+      - ~/.gradle/wrapper:/home/gradle/.gradle/wrapper
+    environment:
+      GRADLE_USER_HOME: /home/gradle/.gradle
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-skeleton}
+      DB_USER: ${MYSQL_USER:-skeleton}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-skeleton}
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # Replace with e.g. `gradle bootRun --no-daemon` once the project exists
+    command: sleep infinity
+
+  app:
+    image: node:lts
+    container_name: skeleton-app
+    working_dir: /workspace
+    volumes:
+      - ./app:/workspace
+      # Reuse the host's npm package cache
+      - ~/.npm:/root/.npm
+      # npx's lock check fails on macOS bind mounts, so keep its dir container-local
+      - app_npx:/root/.npm/_npx
+    environment:
+      API_URL: http://api:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    command: sh -c "if [ -f package.json ]; then npm install && npm run dev; else sleep infinity; fi"
+
+  agent:
+    image: node:lts
+    container_name: skeleton-agent
+    working_dir: /workspace
+    volumes:
+      - ./agent:/workspace
+      - ~/.npm:/root/.npm
+      - agent_npx:/root/.npm/_npx
+    environment:
+      API_URL: http://api:8080
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+    command: sh -c "if [ -f package.json ]; then npm install && npm run dev; else sleep infinity; fi"
+
+  mysql:
+    image: mysql:8.4
+    container_name: skeleton-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-skeleton}
+      MYSQL_USER: ${MYSQL_USER:-skeleton}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-skeleton}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
+  app_npx:
+  agent_npx:
