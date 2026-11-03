@@ -19,6 +19,8 @@ services:
       DB_NAME: ${MYSQL_DATABASE:-skeleton}
       DB_USER: ${MYSQL_USER:-skeleton}
       DB_PASSWORD: ${MYSQL_PASSWORD:-skeleton}
+      API_TOKEN: ${API_TOKEN:-123456}
+      AGENT_URL: http://agent:3000
     ports:
       - "8080:8080"
     depends_on:
@@ -39,14 +41,17 @@ services:
       - app_npx:/root/.npm/_npx
     environment:
       API_URL: http://api:8080
+      AGENT_URL: http://agent:3000
     ports:
       - "3000:3000"
     depends_on:
       - api
+      - agent
     command: sh -c "if [ -f package.json ]; then npm install && npm run dev; else sleep infinity; fi"
 
   agent:
-    image: node:lts
+    # eve needs Node 24 (see agent/package.json engines)
+    image: node:24
     container_name: skeleton-agent
     working_dir: /workspace
     volumes:
@@ -55,11 +60,17 @@ services:
       - agent_npx:/root/.npm/_npx
     environment:
       API_URL: http://api:8080
+      # Static bearer token callers (the app's /eve proxy, the api) must send; same token the api checks
+      API_TOKEN: ${API_TOKEN:-123456}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # File change events from a macOS host don't reach the container through the bind mount
+      CHOKIDAR_USEPOLLING: "true"
     ports:
       - "3001:3000"
     depends_on:
       - api
-    command: sh -c "if [ -f package.json ]; then npm install && npm run dev; else sleep infinity; fi"
+    # Headless dev server on all interfaces; run `npm run dev` on the host for the terminal UI
+    command: sh -c "if [ -f package.json ]; then npm install && npm run dev -- --no-ui --host 0.0.0.0 --port 3000; else sleep infinity; fi"
 
   mysql:
     image: mysql:8.4

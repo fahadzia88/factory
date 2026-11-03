@@ -6,6 +6,7 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
 } from "react-router"
+import { ThemeProvider } from "next-themes"
 import { useEffect, useState } from "react"
 
 import { Toaster } from "~/components/ui/sonner"
@@ -14,7 +15,8 @@ import "./app.css"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // next-themes sets the theme class on <html> before hydration, so React would flag the mismatch
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,7 +24,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
+        {/* Toggles the .dark class app.css styles against, following the OS; the toaster reads it too */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
