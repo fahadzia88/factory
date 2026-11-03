@@ -81,14 +81,10 @@ async function parseBody(response: Response) {
   return isJson ? JSON.parse(text) : text
 }
 
+/** RFC 9457 problem details, as Spring returns them for errors. */
 export type ProblemDetail = {
+  title?: string
   detail?: string
-  /** OperationOutcome issues Epic returned; `expression` names the offending element, e.g. ["birthdate"]. */
-  issues?: {
-    details?: { text?: string }
-    diagnostics?: string
-    expression?: string[]
-  }[]
 }
 
 export function problemDetail(error: ApiError): ProblemDetail {
@@ -97,7 +93,7 @@ export function problemDetail(error: ApiError): ProblemDetail {
   ) as ProblemDetail
 }
 
-/** A message to show the user for a failed API call: Epic's own reasons when it gave any. */
+/** A message to show the user for a failed API call: the server's own reason when it gave one. */
 export function apiErrorMessage(error: unknown) {
   if (!(error instanceof ApiError)) {
     // fetch rejects with a TypeError when the request never got a response
@@ -106,17 +102,9 @@ export function apiErrorMessage(error: unknown) {
       : "Something went wrong. Try again."
   }
   const problem = problemDetail(error)
-  const issues = [
-    ...new Set(
-      (problem.issues ?? [])
-        .map((issue) => issue.details?.text || issue.diagnostics)
-        .filter(Boolean)
-    ),
-  ]
-  if (issues.length) return issues.join(" ")
   if (error.status === 401) return "Your session has expired. Sign in again."
   if (error.status === 404) return "Not found."
   if (error.status === 502)
-    return "Epic is unavailable right now. Try again shortly."
-  return problem.detail ?? `Request failed (${error.status}).`
+    return "The server is unavailable right now. Try again shortly."
+  return problem.detail ?? problem.title ?? `Request failed (${error.status}).`
 }

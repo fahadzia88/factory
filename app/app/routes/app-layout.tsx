@@ -29,7 +29,8 @@ export function HydrateFallback() {
 }
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard" }
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/assistant", label: "Assistant" },
 ]
 
 export default function AppLayout() {

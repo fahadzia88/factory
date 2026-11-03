@@ -47,7 +47,7 @@ export default function Login({ actionData }: Route.ComponentProps) {
       <Form method="post" className="flex w-full max-w-xs flex-col gap-2">
         <h1 className="mb-4 flex items-center justify-center gap-2 font-heading text-2xl font-medium tracking-tight">
           <HospitalIcon className="size-6 text-primary" aria-hidden />
-          Cirqa Care
+          Skeleton
         </h1>
         <Label htmlFor="password" className="sr-only">
           Password

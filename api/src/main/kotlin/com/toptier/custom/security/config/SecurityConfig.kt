@@ -3,7 +3,6 @@ package com.toptier.custom.security.config
 import com.toptier.custom.security.filter.StaticTokenAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -28,10 +27,6 @@ class SecurityConfig(private val securityProperties: SecurityProperties) {
 			.sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
 			.authorizeHttpRequests {
 				it.requestMatchers("/error").permitAll()
-				// Simulated vendor: its consent pages are public and its API checks the vendor's own access tokens
-				it.requestMatchers("/api/sim/wristband/oauth/**", "/api/sim/wristband/v1/**").permitAll()
-				// Browser redirect back from the vendor; guarded by the single-use OAuth state instead
-				it.requestMatchers(HttpMethod.GET, "/api/wearables/oauth/callback").permitAll()
 				it.anyRequest().authenticated()
 			}
 			.exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
