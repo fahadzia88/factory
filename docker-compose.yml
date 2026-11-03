@@ -4,6 +4,8 @@ services:
   api:
     image: gradle:jdk25
     container_name: skeleton-api
+    # Gradle + Kotlin compiler + the app JVM need headroom; the Docker VM must have more than this to spare
+    mem_limit: 2g
     working_dir: /workspace
     volumes:
       - ./api:/workspace
@@ -12,7 +14,7 @@ services:
       - ~/.gradle/wrapper:/home/gradle/.gradle/wrapper
     environment:
       GRADLE_USER_HOME: /home/gradle/.gradle
-      DB_HOST: mysql
+      DB_HOST: skeleton-mysql
       DB_PORT: 3306
       DB_NAME: ${MYSQL_DATABASE:-skeleton}
       DB_USER: ${MYSQL_USER:-skeleton}

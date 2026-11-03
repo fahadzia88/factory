@@ -6,7 +6,9 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
 } from "react-router"
+import { useEffect, useState } from "react"
 
+import { Toaster } from "~/components/ui/sonner"
 import type { Route } from "./+types/root"
 import "./app.css"
 
@@ -29,7 +31,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />
+  return (
+    <>
+      <Outlet />
+      <ClientToaster />
+    </>
+  )
+}
+
+/** Sonner renders different markup on the server than in the browser, so only mount it after hydration. */
+function ClientToaster() {
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => setHydrated(true), [])
+  return hydrated ? <Toaster position="top-right" /> : null
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

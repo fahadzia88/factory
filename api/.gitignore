@@ -1,0 +1,7 @@
+.gradle/
+.kotlin/
+build/
+
+# Epic private key and other local secrets
+secrets/
+src/main/resources/secrets
