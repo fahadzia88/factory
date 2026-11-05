@@ -1,0 +1,85 @@
+# Files that come from the skeleton base repo, checked by .claude/hooks/protect-base.sh in
+# project repos (any repo with a `base` git remote). The skeleton itself is never blocked.
+#
+#   locked <pattern>  Claude may not edit it. Generic changes go to the skeleton; project
+#                     needs are built in project-owned code around it.
+#   shared <pattern>  An extension point projects are expected to change. Claude must keep
+#                     the change additive and project-specific, and the user confirms each edit.
+#
+# Patterns are bash globs relative to the repo root; `*` also matches `/`, so `dir/*` covers
+# everything under dir. A user can allow a locked path in one project by listing it in
+# .claude/base-overrides (which only the user edits).
+
+# Workflow and instructions
+locked CLAUDE.md
+locked README-base.md
+locked api/CLAUDE.md
+locked app/CLAUDE.md
+locked agent/CLAUDE.md
+locked agent/AGENTS.md
+locked feature/rules.md
+locked feature/_templates/*
+locked .claude/base-files
+locked .claude/hooks/*
+locked .claude/settings.json
+locked .claude/skills/feature-requirements/*
+locked .claude/skills/feature-breakdown/*
+locked .claude/skills/feature-task-spec/*
+locked .claude/skills/feature-dispatch/*
+locked .claude/skills/feature-status/*
+locked .claude/skills/stacked-pr/*
+
+# api/ — core packages and build plumbing
+locked api/src/main/kotlin/com/toptier/custom/CustomApplication.kt
+locked api/src/main/kotlin/com/toptier/custom/security/*
+locked api/src/main/kotlin/com/toptier/custom/agent/*
+locked api/src/main/kotlin/com/toptier/custom/config/*
+locked api/src/test/kotlin/com/toptier/custom/CustomApplicationTests.kt
+locked api/src/test/kotlin/com/toptier/custom/security/*
+locked api/src/test/kotlin/com/toptier/custom/agent/*
+locked api/src/test/kotlin/com/toptier/custom/support/*
+locked api/settings.gradle
+locked api/gradlew
+locked api/gradlew.bat
+locked api/gradle/*
+shared api/build.gradle
+shared api/src/main/resources/application.properties
+
+# app/ — shared UI, auth and tooling
+locked app/app/components/ui/*
+locked app/app/components/agent/*
+locked app/app/components/page-header.tsx
+locked app/app/components/status-badge.tsx
+locked app/app/lib/api.ts
+locked app/app/lib/auth.ts
+locked app/app/lib/password.ts
+locked app/app/lib/utils.ts
+locked app/app/routes/login.tsx
+locked app/app/routes/assistant.tsx
+locked app/Dockerfile
+locked app/vite.config.ts
+locked app/react-router.config.ts
+locked app/tsconfig.json
+locked app/components.json
+locked app/.prettierrc
+locked app/.prettierignore
+shared app/app/root.tsx
+shared app/app/app.css
+shared app/app/routes.ts
+shared app/app/routes/app-layout.tsx
+shared app/app/routes/dashboard.tsx
+shared app/app/routes/home.tsx
+shared app/package.json
+
+# agent/ — HTTP service around the Claude Agent SDK
+locked agent/src/server.ts
+locked agent/src/auth.ts
+locked agent/src/chat.ts
+locked agent/tsconfig.json
+locked agent/README.md
+shared agent/src/agent.ts
+shared agent/src/instructions.md
+shared agent/package.json
+
+# Root
+shared docker-compose.yml

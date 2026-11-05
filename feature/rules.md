@@ -49,7 +49,7 @@ feature/
 ## 2. Task breakdown (`task-breakdown.md`)
 
 - Split the work into tasks, each owned by one layer: `api` (backend session), `app` (frontend
-  session), `agent` (eve agent) or `infra` (`docker-compose.yml`, `.env`, anything at the repo
+  session), `agent` (Claude Agent SDK service) or `infra` (`docker-compose.yml`, `.env`, anything at the repo
   root; done by the coordinator only with the user's go-ahead).
 - Pin down the contract between layers (endpoints, request and response shapes, errors) before
   any task that depends on it.

@@ -18,7 +18,7 @@ Gate 2 of the workflow in `feature/rules.md`. Read that file first.
    and the existing code the feature extends.
 2. **Write the contracts first.** For every boundary between layers (api ↔ app, api ↔ agent,
    app ↔ agent) write down the endpoint or interface: path, request, response, error statuses.
-   Follow existing conventions (bearer auth, `ProblemDetail` errors, `/api` and `/eve` proxies).
+   Follow existing conventions (bearer auth, `ProblemDetail` errors, `/api` and `/agent` proxies).
 3. **Split into tasks.** Copy `feature/_templates/task-breakdown.md`. Each task:
    - is owned by one layer: `api`, `app`, `agent`, or `infra` (compose, root config);
    - is one PR of about 400 changed lines or fewer;
