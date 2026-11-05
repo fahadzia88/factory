@@ -1,7 +1,7 @@
 ---
 feature: 001-projects
 status: approved
-approved: 2026-11-04
+approved: 2026-11-05
 ---
 
 # Projects: task breakdown
@@ -121,20 +121,23 @@ The field keys are `name`, `repositoryUrl`, `description` and `status`.
   timeout, an I/O error, or a blank `app.github.token` (no call is made).
 - Config: `app.github.token=${GITHUB_TOKEN:}` and `app.github.base-url=https://api.github.com`.
 
-### agent → api (root agent tools)
+### agent → api (Assistant tools)
 
 - `list_projects({ q?, status?, includeArchived = true, sort?, direction? })` calls
   `GET {API_URL}/api/projects` with `Authorization: Bearer ${API_TOKEN}`. It fetches pages of 100
   until done and returns the Project JSON as is.
 - `get_project({ id })` calls `GET {API_URL}/api/projects/{id}` and returns the Project, or
   `{ found: false }` on `404`.
-- There are no write tools. The root instructions say the Assistant can't change projects and
-  point to the Projects page.
+- There are no write tools. The agent's instructions (`agent/src/instructions.md`) say the
+  Assistant can't change projects and point to the Projects page.
+- The agent is the Node service on the Claude Agent SDK. The tools are SDK `tool()`s in
+  `agent/src/tools/`, served as the in-process MCP server `app`, so the model sees
+  `mcp__app__list_projects` and `mcp__app__get_project`.
 
 ### app → api
 
 The app calls the routes above through `lib/api.ts` (`/api` is proxied by Vite). There's no new
-app ↔ agent interface: the Assistant page already talks to the agent through `/eve`.
+app ↔ agent interface: the Assistant page already talks to the agent through `/agent`.
 
 ## Tasks
 
@@ -148,15 +151,15 @@ Stack order, bottom first. Each task is one PR based on the row above it.
 | 03 | api   | `ProjectController` and DTOs for `POST`, `GET {id}`, `PUT`, archive, restore; exception handler with field errors | 02 | AC-2, AC-4, AC-5, AC-19, AC-20, AC-22, AC-23 | `feat/001-projects/03-api-project-endpoints` |
 | 04 | api   | `GET /api/projects` (search, status, includeArchived, sort, paging) and `GET /api/projects/summary` | 03 | AC-12–AC-16, AC-24 | `feat/001-projects/04-api-project-list` |
 | 05 | infra | Pass the API's own read-only token: `api` service `GITHUB_TOKEN: ${API_GITHUB_TOKEN:-}` in `docker-compose.yml`, documented in `README-base.md` | 04 | AC-8, AC-9 | `feat/001-projects/05-infra-api-github-token` |
-| 06 | agent | Root agent tools `list_projects` and `get_project` calling the API; instructions: read-only, point to the Projects page | 05 | AC-26–AC-28 | `feat/001-projects/06-agent-project-tools` |
+| 06 | agent | Assistant tools `list_projects` and `get_project` (SDK `tool()`s in `agent/src/tools/`) calling the API, with `node:test` tests; instructions: read-only, point to the Projects page | 05 | AC-26–AC-28 | `feat/001-projects/06-agent-project-tools` |
 | 07 | app   | `lib/projects.ts` (types and calls) and the `/projects` list page: search, status filter, archived switch, sortable columns, pagination, state in the URL, empty and error states. Route registered, not in the nav. | 06 | AC-2, AC-9, AC-12–AC-18, AC-29, AC-30 | `feat/001-projects/07-app-project-list` |
 | 08 | app   | `/projects/:id` detail page: fields, "Repository not verified", archived read-only view, archive with confirmation, restore, not-found page | 07 | AC-4, AC-9, AC-19–AC-23, AC-29, AC-30 | `feat/001-projects/08-app-project-detail` |
 | 09 | app   | `/projects/new` and `/projects/:id/edit`: shared form (status starts on `planning`), field errors from the API, values kept on failure | 08 | AC-3–AC-8, AC-11, AC-30 | `feat/001-projects/09-app-project-form` |
 | 10 | app   | Dashboard summary (status counts linking to the filtered list, 5 recent, View all, empty state with New project) and the "Projects" nav item | 09 | AC-1, AC-24, AC-25, AC-29, AC-30 | `feat/001-projects/10-app-dashboard-nav` |
 
 Who does what: `api` tasks go to the `api/` Claude Code session and `infra` to the coordinator
-(with the user's go-ahead). `agent` and `app` tasks go to the session the coordinator names: the
-`app/` Claude Code session, or the agent's `stacked-pr` subagent.
+(with the user's go-ahead). `app` tasks go to the `app/` Claude Code session, and the `agent` task
+to the Claude Code session the user names.
 
 ## AC coverage
 
@@ -187,9 +190,9 @@ Who does what: `api` tasks go to the `api/` Claude Code session and `infra` to t
 | AC-23 | 03, 08         | `ProjectControllerTests` 404; manual "Project not found" page |
 | AC-24 | 04, 10         | `ProjectListTests` summary counts and recent; manual Dashboard links |
 | AC-25 | 10             | Manual: Dashboard empty state opens the create form |
-| AC-26 | 06             | eve eval: "which projects are there?" lists archived ones too (API stubbed) |
-| AC-27 | 06             | eve eval: asking about a project by name answers from its stored fields |
-| AC-28 | 06             | eve eval: asking to create or archive gets a refusal and no write tool is called |
+| AC-26 | 06             | `projects.test.ts`: `list_projects` defaults to includeArchived and reads every page; manual chat via curl: "which projects are there?" lists archived ones too |
+| AC-27 | 06             | `projects.test.ts`: `get_project` returns the stored fields; manual chat: asking about a project by name answers from them |
+| AC-28 | 06             | Manual chat: asking to archive gets a refusal, the stream shows only `mcp__app__list_projects`/`get_project` tool events, and the project is unchanged |
 | AC-29 | 07, 08, 10     | Manual: API stopped → error with retry on list, detail and Dashboard |
 | AC-30 | 07, 08, 09, 10 | Manual at 375 px: no horizontal page scroll |
 
@@ -224,3 +227,5 @@ Who does what: `api` tasks go to the `api/` Claude Code session and `infra` to t
 
 - 2026-11-04 — Created.
 - 2026-11-04 — Approved.
+- 2026-11-05 — Back to draft: the agent moved from eve to a Node service on the Claude Agent SDK. Task 06 now adds SDK `tool()`s in `agent/src/tools/`, checked by `node:test` tool tests and manual chat checks instead of eve evals. The app proxy is `/agent`, and the agent task goes to a Claude Code session. The api and app contracts are unchanged.
+- 2026-11-05 — Approved again.

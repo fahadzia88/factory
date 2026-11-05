@@ -3,7 +3,7 @@ feature: 001-projects
 task: 05-infra-api-github-token
 layer: infra
 status: approved
-approved: 2026-11-04
+approved: 2026-11-05
 branch: feat/001-projects/05-infra-api-github-token
 base: feat/001-projects/04-api-project-list
 covers: [AC-8, AC-9]
@@ -13,8 +13,9 @@ covers: [AC-8, AC-9]
 
 ## Goal
 
-Give the `api` container its own read-only GitHub token for the repository check. It's separate
-from the agent's workflow `GITHUB_TOKEN`, and documented for setup.
+Give the `api` container its own read-only GitHub token for the repository check, documented for
+setup. It's separate from the `GITHUB_TOKEN` in the root `.env`, which has write access for the
+feature workflow.
 
 ## Contract
 
@@ -24,7 +25,7 @@ From task-breakdown.md, "api → GitHub":
 - A blank `app.github.token` means no call is made, and the project saves unverified.
 
 The api reads `GITHUB_TOKEN` from its own environment. The root `.env` names it
-`API_GITHUB_TOKEN`, so it can't collide with the agent's `GITHUB_TOKEN`.
+`API_GITHUB_TOKEN`, so it can't collide with the root `.env`'s `GITHUB_TOKEN`.
 
 ## Files
 
@@ -38,7 +39,7 @@ The api reads `GITHUB_TOKEN` from its own environment. The root `.env` names it
 
    ```yaml
    # Read-only GitHub token (Metadata: read) for checking project repositories exist; blank skips the check.
-   # Separate from the agent's GITHUB_TOKEN, which can write.
+   # Separate from the root .env's GITHUB_TOKEN, which can write.
    GITHUB_TOKEN: ${API_GITHUB_TOKEN:-}
    ```
 2. In `README-base.md`'s `.env` example, add a line with a comment:
@@ -48,7 +49,7 @@ The api reads `GITHUB_TOKEN` from its own environment. The root `.env` names it
    ```
 
    Add one sentence: without it, projects save as "Repository not verified".
-3. Change nothing else in compose. In particular, the agent's `GITHUB_TOKEN` line stays as it is.
+3. Change nothing else in compose.
 
 ## Tests
 
@@ -67,3 +68,9 @@ The api reads `GITHUB_TOKEN` from its own environment. The root `.env` names it
 
 - Creating the token itself (a release step, listed in the breakdown's rollout).
 - Any change to the agent service's environment.
+
+## Changelog
+
+- 2026-11-05 — Back to draft: the agent no longer uses `GITHUB_TOKEN` (it moved from eve to the
+  Claude Agent SDK), so the token is described as the root `.env`'s write token instead.
+- 2026-11-05 — Approved again.
