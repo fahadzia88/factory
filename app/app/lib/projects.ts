@@ -91,6 +91,9 @@ export const archiveProject = (id: number) =>
 export const restoreProject = (id: number) =>
   api.post<Project>(`/api/projects/${id}/restore`)
 
+export const verifyProject = (id: number) =>
+  api.post<Project>(`/api/projects/${id}/verify`)
+
 export const getProjectSummary = () =>
   api.get<ProjectSummary>("/api/projects/summary")
 

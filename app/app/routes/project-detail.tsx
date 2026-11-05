@@ -3,6 +3,7 @@ import {
   ArchiveRestoreIcon,
   ExternalLinkIcon,
   PencilIcon,
+  RefreshCwIcon,
 } from "lucide-react"
 import { useState } from "react"
 import { Form, Link, useNavigation, useRevalidator } from "react-router"
@@ -40,6 +41,7 @@ import {
   projectId,
   restoreProject,
   STATUS_LABEL,
+  verifyProject,
   type Project,
 } from "~/lib/projects"
 import type { Route } from "./+types/project-detail"
@@ -76,6 +78,9 @@ export async function clientAction({
     } else if (intent === "restore") {
       await restoreProject(id)
       toast.success("Project restored")
+    } else if (intent === "verify") {
+      await verifyProject(id)
+      toast.success("Repository verified")
     }
     return { error: null }
   } catch (error) {
@@ -187,6 +192,25 @@ function RestoreButton() {
   )
 }
 
+function VerifyButton() {
+  const submitting = useSubmitting("verify")
+  return (
+    <Form method="post">
+      <Button
+        type="submit"
+        name="intent"
+        value="verify"
+        variant="outline"
+        size="sm"
+        disabled={submitting}
+      >
+        {submitting ? <Spinner /> : <RefreshCwIcon aria-hidden />}
+        Verify repository
+      </Button>
+    </Form>
+  )
+}
+
 function ArchiveDialog({ name }: { name: string }) {
   const [open, setOpen] = useState(false)
   const submitting = useSubmitting("archive")
@@ -239,11 +263,15 @@ function ProjectDetails({ project }: { project: Project }) {
                 <ExternalLinkIcon aria-hidden className="size-3.5 shrink-0" />
               </a>
               {!project.repositoryVerified && <UnverifiedBadge />}
+              {!project.repositoryVerified && !project.archived && (
+                <VerifyButton />
+              )}
             </dd>
             {!project.repositoryVerified && (
               <p className="text-sm text-muted-foreground">
-                GitHub couldn't be reached when it was saved. Saving the project
-                again re-checks it.
+                {project.archived
+                  ? "GitHub couldn't be reached when it was saved. Saving the project again re-checks it."
+                  : "GitHub couldn't be reached when it was saved. Verify it again, or save the project to re-check it."}
               </p>
             )}
           </div>
