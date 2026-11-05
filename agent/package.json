@@ -15,9 +15,11 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "@vercel/connect": "2.7.0",
     "ai": "^7.0.137",
     "eve": "^1.0.0-rc.2",
+    "simple-git": "^3.36.0",
     "zod": "4.5.4"
   },
   "devDependencies": {

@@ -27,7 +27,9 @@ agent/
 ├── agent/
 │   ├── agent.ts            # model + runtime config (defineAgent)
 │   ├── instructions.md     # always-on system prompt — edit this to change behaviour
-│   └── channels/eve.ts     # HTTP channel /eve/v1/* and who may call it (API_TOKEN bearer)
+│   ├── channels/eve.ts     # HTTP channel /eve/v1/* and who may call it (API_TOKEN bearer)
+│   ├── lib/                # git worktrees, GitHub PRs, doc rules, checks, shared tools
+│   └── subagents/          # the feature workflow (see below)
 ├── package.json            # scripts: dev, build, start, typecheck, eval
 ├── AGENTS.md / CLAUDE.md   # guidance for coding agents working in this folder
 └── .eve/                   # build output + local session data (gitignored)
@@ -37,6 +39,42 @@ Add capabilities as more files under `agent/`: `tools/`, `skills/`, `schedules/`
 `connections/`. The full docs for the installed version are in `node_modules/eve/docs/`; start with
 its `README.md`.
 
+## Feature workflow subagents
+
+The `.claude/skills` feature workflow (`feature/rules.md`) also runs inside the agent, one subagent per
+step. The root agent delegates to them; questions and approvals from a subagent show up in the chat.
+
+```
+root agent
+├── feature-requirements   gate 1: requirements.md + ACs
+├── feature-breakdown      gate 2: task-breakdown.md + contracts
+├── feature-task-spec      gate 3: tasks/<NN>-<layer>-<slug>/spec.md
+├── feature-status         read-only report
+└── feature-dispatch       step 4: docs PR, one task at a time, progress table, restacks
+    └── stacked-pr         implements app and agent tasks, runs checks, opens stacked PRs
+```
+
+`api` and `infra` tasks stay in Claude Code (the agent container has no JDK); `feature-dispatch` tells
+you when to run `/stacked-pr` there.
+
+**Where the work happens.** The subagents never touch your checkout. On first use the agent clones the
+repo over HTTPS into the `agent_git` volume (`/git/repo.git`, bare) and adds a worktree per branch under
+`/git/worktrees/`. You see its work as pushed branches and PRs. Delete the volume to start clean.
+
+**Guardrails, enforced in code (`lib/`), not just in prompts:**
+
+- Writes only on `feat/<NNN>-<slug>/…` branches, never `main`. The docs branch can only change
+  `feature/<NNN>-<slug>/`; an app or agent task branch only its layer's folder. Commits stage only that folder.
+- A task branch can only be created once its spec is `approved`, with the spec's branch and base.
+- A doc's `status` changes only through `doc_set_status`; setting `approved` asks you to confirm in the
+  chat. An approved doc can't be edited without going back to `draft`.
+- Task PRs target the branch below them; force-pushes are `--force-with-lease` on task branches only.
+- `run_checks` runs only the folder's fixed checks, with no secrets in their environment. The GitHub
+  token is sent as a per-command header and never written to disk.
+- Subagents have `defaultTools: false`: no sandbox shell or web tools, only their own `tools/`.
+
+Each subagent's `tools/` re-exports from `lib/tools.ts`, so its folder lists exactly what it can do.
+
 ## Configuration
 
 | Variable              | Where                | Purpose                                                                 |
@@ -44,6 +82,9 @@ its `README.md`.
 | `ANTHROPIC_API_KEY`   | root `.env`          | **Required.** Read by `anthropic()` in `agent/agent.ts`.                |
 | `API_TOKEN`           | root `.env` (optional) | Bearer token callers must send. Defaults to `123456`, same as the API. |
 | `API_URL`             | docker-compose       | Where tools can reach the API (`http://api:8080`).                      |
+| `GITHUB_TOKEN`        | root `.env`          | Feature subagents: push branches, open and comment on PRs. Fine-grained, this repo only, Contents + Pull requests read/write. |
+| `GITHUB_REPO`         | root `.env` (optional) | Defaults to `fahadzia88/factory`.                                     |
+| `GIT_USER_NAME` / `GIT_USER_EMAIL` | root `.env` (optional) | Commit identity. Defaults to `factory agent`.            |
 | `CHOKIDAR_USEPOLLING` | docker-compose       | Hot reload through the macOS bind mount.                                |
 
 The model is set in `agent/agent.ts`:

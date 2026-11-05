@@ -58,11 +58,20 @@ services:
       - ./agent:/workspace
       - ~/.npm:/root/.npm
       - agent_npx:/root/.npm/_npx
+      # The agent's own clone of the GitHub repo and its worktrees (agent/agent/lib/repo.ts).
+      # Never the host checkout, so branch switches can't touch your files or reload the agent.
+      - agent_git:/git
     environment:
       API_URL: http://api:8080
       # Static bearer token callers (the app's /eve proxy, the api) must send; same token the api checks
       API_TOKEN: ${API_TOKEN:-123456}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Feature-workflow subagents: push branches over HTTPS and open/comment on PRs (no gh CLI).
+      # Fine-grained token for this repo only: Contents + Pull requests, read and write.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPO: ${GITHUB_REPO:-fahadzia88/factory}
+      GIT_USER_NAME: ${GIT_USER_NAME:-factory agent}
+      GIT_USER_EMAIL: ${GIT_USER_EMAIL:-factory-agent@users.noreply.github.com}
       # File change events from a macOS host don't reach the container through the bind mount
       CHOKIDAR_USEPOLLING: "true"
     ports:
@@ -94,3 +103,4 @@ volumes:
   mysql_data:
   app_npx:
   agent_npx:
+  agent_git:
