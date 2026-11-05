@@ -51,20 +51,24 @@ services:
     command: sh -c "if [ -f package.json ]; then npm install && npm run dev; else sleep infinity; fi"
 
   agent:
-    # eve needs Node 24 (see agent/package.json engines)
+    # Node 24 runs the agent's TypeScript directly (see agent/package.json engines)
     image: node:24
     container_name: factory-agent
     working_dir: /workspace
     volumes:
       - ./agent:/workspace
+      # Container-local: the Claude Agent SDK installs a native binary for the platform it runs on
+      - agent_node_modules:/workspace/node_modules
       - ~/.npm:/root/.npm
       - agent_npx:/root/.npm/_npx
       # The agent's own clone of the GitHub repo and its worktrees (agent/agent/lib/repo.ts).
       # Never the host checkout, so branch switches can't touch your files or reload the agent.
       - agent_git:/git
     environment:
+      HOST: 0.0.0.0
+      PORT: 3000
       API_URL: http://api:8080
-      # Static bearer token callers (the app's /eve proxy, the api) must send; same token the api checks
+      # Static bearer token callers (the app's /agent proxy, the api) must send; same token the api checks
       API_TOKEN: ${API_TOKEN:-123456}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Feature-workflow subagents: push branches over HTTPS and open/comment on PRs (no gh CLI).
@@ -79,8 +83,7 @@ services:
       - "3001:3000"
     depends_on:
       - api
-    # Headless dev server on all interfaces; run `npm run dev` on the host for the terminal UI
-    command: sh -c "if [ -f package.json ]; then npm install && npm run dev -- --no-ui --host 0.0.0.0 --port 3000; else sleep infinity; fi"
+    command: sh -c "if [ -f package.json ]; then npm install && npm run dev; else sleep infinity; fi"
 
   mysql:
     image: mysql:8.4
@@ -105,3 +108,4 @@ volumes:
   app_npx:
   agent_npx:
   agent_git:
+  agent_node_modules:

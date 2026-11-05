@@ -12,8 +12,8 @@ skeleton improvements are merged into it.
 | Folder   | What                                                                                          | Port (host) |
 | -------- | --------------------------------------------------------------------------------------------- | ----------- |
 | `api/`   | Spring Boot 4 / Kotlin backend. Static bearer-token auth, JPA on MySQL. See `api/CLAUDE.md`. | 8080        |
-| `app/`   | React Router + Vite + shadcn/ui frontend. Proxies `/api` to the API and `/eve` to the agent.  | 3000        |
-| `agent/` | AI agent built on [eve](https://eve.dev), calling Anthropic. See `agent/README.md`.          | 3001        |
+| `app/`   | React Router + Vite + shadcn/ui frontend. Proxies `/api` to the API and `/agent` to the agent.| 3000        |
+| `agent/` | AI agent built on the Claude Agent SDK, calling Anthropic. See `agent/README.md`.            | 3001        |
 | mysql    | MySQL 8.4 (`skeleton` database, data in the `mysql_data` volume).                             | 3306        |
 
 All requests to the API and the agent need `Authorization: Bearer <API_TOKEN>`. The app's sign-in

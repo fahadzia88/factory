@@ -1,55 +1,40 @@
-# eve Agent App
+# agent
 
-This project uses the eve framework: an agent is a directory of files under `agent/`, and eve compiles and runs it.
+Rules for working in this folder. `api/` and `app/` have their own. `README.md` describes the
+service, its HTTP API and how to run it.
 
-For a content-only change to the root agent's identity, purpose, tone, or response guidelines, edit its existing authored instructions. Fresh projects use `agent/instructions.md`; a project may instead use `agent/instructions.ts` or files under `agent/instructions/`. You do not need to read the framework docs for a content-only instructions change. A fresh project already has its selected model in `agent/agent.ts`; preserve that file unless the user asks to change the model.
+The agent is a small Node HTTP service (`src/server.ts`) that runs each chat turn through `query()`
+from the [Claude Agent SDK](https://docs.claude.com/en/docs/agent-sdk/typescript)
+(`@anthropic-ai/claude-agent-sdk`). There is no framework: Node runs the `.ts` files directly.
 
-## Read the docs before writing code
+## Where things go
 
-```sh
-ls node_modules/eve/docs
-```
+- **Behaviour, tone, guidelines:** `src/instructions.md`, the system prompt. A content-only change
+  needs nothing else.
+- **Model, effort, tools, subagents, other SDK options:** `agentOptions` in `src/agent.ts`.
+  Preserve the model unless the user asks to change it.
+- **Tools:** one file per tool under `src/tools/`, built with `tool()` from the SDK and a Zod input
+  schema, then added to the `tools` array in `src/agent.ts`. See README.md, "Tools".
+- **HTTP routes, auth, stream events:** `src/server.ts`, `src/auth.ts`, `src/chat.ts`. These are
+  the contract with `app/` and `api/`; change them only for a change every caller should get, and
+  update README.md, "HTTP API" in the same change.
 
-Start with `docs/README.md`: it maps each task to the page that covers it. Read that page before authoring tools, connections, channels, skills, subagents, schedules, or deployment. In a workspace or local package install, resolve the installed `eve` package location first. If the package docs are missing, use https://eve.dev/docs.
+## Rules
 
-Use a bounded authoring loop:
-
-1. Read the relevant page and inspect only files you will modify or need to imitate.
-2. Stop discovery once the file location, imports, and definition shape are clear. Implement the smallest complete behavior the user requested.
-3. Run one narrow verification. Expand investigation only when it fails or the request needs project-specific details.
-
-Follow links or inspect public types only when the routed page leaves the task unanswered. Do not recursively glob `node_modules`, enumerate the entire docs tree, or read unrelated scaffold files when the direct path is known. Package-manager links can hide files from recursive glob tools even though direct reads work.
-
-## Prefer an existing integration
-
-When a task names an external product or service, search the registry before implementing its integration. For a generic capability, author a tool instead.
-
-```sh
-eve registry search <query> --json
-eve registry view <item>
-```
-
-Prefer items whose `implementation` is `native`; use Chat SDK adapters when no native channel fits. `registry view` links the item's documentation.
-
-Install without driving interactive prompts:
-
-```sh
-eve add <item> --non-interactive
-```
-
-Exit code 0 means setup completed, 1 failed, and 2 needs an answer or a prerequisite. On exit 2, run the `next.command` from the final NDJSON event. For a non-secret question, replace its `<JSON value>` answer placeholder with the answer you collected; string values need JSON quotes. Never pass a secret in `--answer`. See `docs/install-integrations.mdx` for setup prerequisites.
-
-## Use eve for Vercel operations
-
-Use eve to link and deploy Vercel projects:
-
-```sh
-eve link --non-interactive --project <name-or-id> [--team <team-id-or-slug>]
-eve deploy --non-interactive --yes [--project <name-or-id>]
-```
-
-A setup may report `eve link` as a prerequisite; run it, then retry the continuation. When a completed setup event has `deploymentRequired: true`, run the `next` command it reports.
+- **Stay isolated.** `chat.ts` turns off built-in tools (`tools: []`), filesystem settings
+  (`settingSources: []`) and permission prompts (`permissionMode: "dontAsk"`). Don't turn them on:
+  this agent serves end users, so Bash, file and web tools would run on their behalf. Give it
+  narrow project tools instead.
+- **Only `mcp__app` tools are pre-approved.** Anything else is denied without asking.
+- **Tools that call the API** use `process.env.API_URL` and send
+  `Authorization: Bearer ${process.env.API_TOKEN}`. Keep them read-only unless the user asks for a
+  write and the API checks it.
+- **Types come from the SDK.** Read `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts` for an
+  option or message type instead of guessing; it's large, so grep for the name.
+- **Erasable TypeScript only** (no enums, namespaces or parameter properties), and relative imports
+  end in `.ts`. `tsconfig.json` enforces both.
 
 ## Validate the change
 
-Run the validation the task requests. When it does not establish the behavior you changed, run the narrowest relevant check.
+`npm run typecheck`. For a behaviour change, run `npm run dev` and send a message with curl
+(README.md, "HTTP API").
