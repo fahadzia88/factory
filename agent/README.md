@@ -78,7 +78,8 @@ Each subagent's `tools/` re-exports from `lib/tools.ts`, so its folder lists exa
 
 | Variable            | Where                  | Purpose                                                                        |
 | ------------------- | ---------------------- | ------------------------------------------------------------------------------ |
-| `ANTHROPIC_API_KEY` | root `.env`            | **Required.** Used by the SDK for every model call.                            |
+| `ANTHROPIC_API_KEY` | root `.env`            | **Required** unless `CLAUDE_CODE_OAUTH_TOKEN` is set. Used for every model call. |
+| `CLAUDE_CODE_OAUTH_TOKEN` | root `.env` (optional) | Claude subscription token from `claude setup-token`, used when `ANTHROPIC_API_KEY` is empty. |
 | `API_TOKEN`         | root `.env` (optional) | Bearer token callers must send. Defaults to `123456`, same as the API.         |
 | `API_URL`           | docker-compose         | Where tools can reach the API (`http://api:8080`).                             |
 | `PORT`, `HOST`      | docker-compose         | Listen address. Defaults to `127.0.0.1:3001` on the host.                      |
@@ -103,8 +104,12 @@ login, settings or sessions.
 Add your key to the root `.env`:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
+
+Or, to use a Claude subscription instead of an API key, leave `ANTHROPIC_API_KEY` unset and add
+`CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...` (from `claude setup-token`). The SDK uses the API key
+when both are set.
 
 Then, from the repo root:
 
@@ -210,8 +215,8 @@ Run `npm test` for the tool tests (`node:test`, with a stubbed `fetch`).
 
 ## Troubleshooting
 
-- **`error` event "Not logged in · Please run /login":** `ANTHROPIC_API_KEY` is missing in the
-  agent's environment. In Docker, check the root `.env` and recreate the container.
+- **`error` event "Not logged in · Please run /login":** neither `ANTHROPIC_API_KEY` nor
+  `CLAUDE_CODE_OAUTH_TOKEN` is set in the agent's environment. In Docker, check the root `.env` and recreate the container.
 - **401 from the agent:** the bearer token doesn't match `API_TOKEN`, or the variable isn't set in
   the container.
 - **`session_not_found` after a restart:** sessions live in `.data/`. Deleting it, or changing
