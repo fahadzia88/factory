@@ -9,7 +9,12 @@ import com.toptier.custom.project.exception.ProjectArchivedException
 import com.toptier.custom.project.exception.ProjectConflictException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
+import jakarta.persistence.criteria.Predicate
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -23,7 +28,10 @@ data class ProjectInput(
 	val status: String?,
 )
 
-/** Creates, updates, archives and restores projects, enforcing validation, uniqueness and the GitHub check. */
+/** Status counts and recent projects for the Dashboard; [counts] has every status, in lifecycle order. */
+data class ProjectSummary(val counts: Map<ProjectStatus, Long>, val recent: List<Project>)
+
+/** Creates, updates, archives, restores and lists projects, enforcing validation, uniqueness and the GitHub check. */
 @Service
 @Transactional
 class ProjectService(
@@ -35,6 +43,28 @@ class ProjectService(
 	/** The project with this id, archived or not. */
 	@Transactional(readOnly = true)
 	fun get(id: Long): Project = repository.findById(id).orElseThrow { ProjectNotFoundException(id) }
+
+	/** One page of projects matching [query]'s filters, sorted, with `id` breaking ties. */
+	@Transactional(readOnly = true)
+	fun list(query: ProjectListQuery): Page<Project> {
+		val spec = Specification<Project> { root, _, cb ->
+			val predicates = mutableListOf<Predicate>()
+			if (!query.includeArchived) predicates += cb.isFalse(root.get<Boolean>("archived"))
+			query.status?.let { predicates += cb.equal(root.get<ProjectStatus>("status"), it) }
+			query.q?.let { predicates += cb.like(cb.lower(root.get<String>("name")), "%${escapeLike(it.lowercase(Locale.ROOT))}%", '\\') }
+			cb.and(*predicates.toTypedArray())
+		}
+		val sort = Sort.by(query.direction, query.sort.property).and(Sort.by(query.direction, "id"))
+		return repository.findAll(spec, PageRequest.of(query.page - 1, query.size, sort))
+	}
+
+	/** Non-archived projects only: a count for every status, and the five most recently updated. */
+	@Transactional(readOnly = true)
+	fun summary(): ProjectSummary {
+		val found = repository.countByArchivedFalseGroupByStatus().associate { it.status to it.total }
+		val counts = ProjectStatus.entries.associateWithTo(linkedMapOf()) { found[it] ?: 0L }
+		return ProjectSummary(counts, repository.findTop5ByArchivedFalseOrderByUpdatedAtDescIdDesc())
+	}
 
 	/** Creates a project; status defaults to planning. The repository is checked with GitHub before saving. */
 	fun create(input: ProjectInput): Project {
@@ -143,6 +173,10 @@ class ProjectService(
 		if (errors.isNotEmpty()) throw ProjectValidationException(errors)
 		return ValidInput(name, name.lowercase(Locale.ROOT), url, repository!!, description, status!!)
 	}
+
+	/** Makes `%`, `_` and the escape character itself match literally in a LIKE pattern. */
+	private fun escapeLike(text: String): String =
+		text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 	private data class ValidInput(
 		val name: String,

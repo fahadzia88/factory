@@ -1,7 +1,10 @@
 package com.toptier.custom.project.controller
 
+import com.toptier.custom.project.dto.ProjectPageResponse
 import com.toptier.custom.project.dto.ProjectRequest
 import com.toptier.custom.project.dto.ProjectResponse
+import com.toptier.custom.project.dto.ProjectSummaryResponse
+import com.toptier.custom.project.service.ProjectListQuery
 import com.toptier.custom.project.service.ProjectService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
@@ -17,6 +21,23 @@ import java.net.URI
 @RestController
 @RequestMapping("/api/projects")
 class ProjectController(private val projectService: ProjectService) {
+
+	/** A page of projects: name search, status filter, archived on request, sorted (default: last updated first). */
+	@GetMapping
+	fun list(
+		@RequestParam(required = false) q: String?,
+		@RequestParam(required = false) status: String?,
+		@RequestParam(required = false) includeArchived: Boolean?,
+		@RequestParam(required = false) sort: String?,
+		@RequestParam(required = false) direction: String?,
+		@RequestParam(required = false) page: Int?,
+		@RequestParam(required = false) size: Int?,
+	): ProjectPageResponse =
+		ProjectPageResponse.from(projectService.list(ProjectListQuery.of(q, status, includeArchived, sort, direction, page, size)))
+
+	/** Non-archived counts per status and the five most recently updated projects, for the Dashboard. */
+	@GetMapping("/summary")
+	fun summary(): ProjectSummaryResponse = ProjectSummaryResponse.from(projectService.summary())
 
 	/** One project, archived or not. */
 	@GetMapping("/{id}")
