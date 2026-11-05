@@ -11,7 +11,9 @@ export default [
   layout("routes/app-layout.tsx", [
     route("dashboard", "routes/dashboard.tsx"),
     route("projects", "routes/projects.tsx"),
+    route("projects/new", "routes/project-new.tsx"),
     route("projects/:id", "routes/project-detail.tsx"),
+    route("projects/:id/edit", "routes/project-edit.tsx"),
     route("assistant", "routes/assistant.tsx"),
   ]),
 ] satisfies RouteConfig
