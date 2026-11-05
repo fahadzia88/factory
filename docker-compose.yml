@@ -22,6 +22,9 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:-skeleton}
       API_TOKEN: ${API_TOKEN:-123456}
       AGENT_URL: http://agent:3000
+      # Read-only GitHub token (Metadata: read) for checking project repositories exist; blank skips the check.
+      # Separate from the root .env's GITHUB_TOKEN, which can write.
+      GITHUB_TOKEN: ${API_GITHUB_TOKEN:-}
     ports:
       - "8080:8080"
     depends_on:
