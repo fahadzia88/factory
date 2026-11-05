@@ -1,7 +1,7 @@
 ---
 feature: 001-projects
 status: approved
-approved: 2026-11-04
+approved: 2026-11-05
 ---
 
 # Projects
@@ -42,6 +42,8 @@ them.
   - A repository the token can't see counts as not found, and the save is rejected.
   - If GitHub can't be reached, rate-limits the check, or doesn't answer in time, the project still
     saves, marked "Repository not verified". The check runs again on the project's next save.
+  - An unverified, non-archived project's detail page has a "Verify repository" button that runs
+    the check again without saving anything else.
 - **Archived projects** are read-only, with a Restore action. Restoring makes them editable again
   and keeps their status.
 - **Navigation:** a "Projects" item in the top nav, with a list page (`/projects`), a detail page
@@ -148,6 +150,12 @@ them.
 - **AC-10** — Given an unverified project, when it is saved again and GitHub confirms the
   repository exists, then the "Repository not verified" marker is gone. If GitHub reports it not
   found, the save is rejected as in AC-8.
+- **AC-31** — Given an unverified, non-archived project, when the user opens its detail page, then
+  a "Verify repository" button is shown; verified and archived projects don't show it. When it is
+  clicked and GitHub confirms the repository, the marker and the button are gone and the project's
+  other fields and updated time are unchanged. If GitHub reports it not found, the page says so
+  and the project stays unverified. If GitHub can't be reached, the page says to try again later
+  and the project stays unverified.
 - **AC-11** — Given a non-archived project, when the user edits any field and saves, then the
   detail page shows the changes and a new updated time. A changed repository URL is checked as in
   AC-8 to AC-9. Changing only other fields of a verified project doesn't call GitHub.
@@ -218,3 +226,5 @@ them.
 - 2026-11-04 — Created.
 - 2026-11-04 — Open questions settled with the user; acceptance criteria written.
 - 2026-11-04 — Approved.
+- 2026-11-05 — Back to draft: added a "Verify repository" button on the detail page of an unverified project (AC-31).
+- 2026-11-05 — Approved again.
