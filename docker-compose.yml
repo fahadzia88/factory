@@ -71,6 +71,9 @@ services:
       # Static bearer token callers (the app's /agent proxy, the api) must send; same token the api checks
       API_TOKEN: ${API_TOKEN:-123456}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Alternative to ANTHROPIC_API_KEY: a Claude subscription token from `claude setup-token` (sk-ant-oat01-…).
+      # The SDK prefers ANTHROPIC_API_KEY when both are set, so leave that one empty to use this.
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       # Feature-workflow subagents: push branches over HTTPS and open/comment on PRs (no gh CLI).
       # Fine-grained token for this repo only: Contents + Pull requests, read and write.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
