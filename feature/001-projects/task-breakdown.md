@@ -1,6 +1,6 @@
 ---
 feature: 001-projects
-status: approved
+status: in-progress
 approved: 2026-11-05
 ---
 
@@ -210,18 +210,20 @@ to the Claude Code session the user names.
 
 ## Progress
 
+Docs PR: [#1](https://github.com/fahadzia88/factory/pull/1), the base of the stack. Merge bottom-up.
+
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
-| 01 | [spec](tasks/01-api-github-check/spec.md) | | not started |
-| 02 | [spec](tasks/02-api-project-service/spec.md) | | not started |
-| 03 | [spec](tasks/03-api-project-endpoints/spec.md) | | not started |
-| 04 | [spec](tasks/04-api-project-list/spec.md) | | not started |
-| 05 | [spec](tasks/05-infra-api-github-token/spec.md) | | not started |
-| 06 | [spec](tasks/06-agent-project-tools/spec.md) | | not started |
-| 07 | [spec](tasks/07-app-project-list/spec.md) | | not started |
-| 08 | [spec](tasks/08-app-project-detail/spec.md) | | not started |
-| 09 | [spec](tasks/09-app-project-form/spec.md) | | not started |
-| 10 | [spec](tasks/10-app-dashboard-nav/spec.md) | | not started |
+| 01 | [spec](tasks/01-api-github-check/spec.md) | [#2](https://github.com/fahadzia88/factory/pull/2) | pr open |
+| 02 | [spec](tasks/02-api-project-service/spec.md) | [#3](https://github.com/fahadzia88/factory/pull/3) | pr open |
+| 03 | [spec](tasks/03-api-project-endpoints/spec.md) | [#4](https://github.com/fahadzia88/factory/pull/4) | pr open |
+| 04 | [spec](tasks/04-api-project-list/spec.md) | [#5](https://github.com/fahadzia88/factory/pull/5) | pr open |
+| 05 | [spec](tasks/05-infra-api-github-token/spec.md) | [#6](https://github.com/fahadzia88/factory/pull/6) | pr open |
+| 06 | [spec](tasks/06-agent-project-tools/spec.md) | [#7](https://github.com/fahadzia88/factory/pull/7) | pr open |
+| 07 | [spec](tasks/07-app-project-list/spec.md) | [#8](https://github.com/fahadzia88/factory/pull/8) | pr open |
+| 08 | [spec](tasks/08-app-project-detail/spec.md) | [#9](https://github.com/fahadzia88/factory/pull/9) | pr open |
+| 09 | [spec](tasks/09-app-project-form/spec.md) | [#10](https://github.com/fahadzia88/factory/pull/10) | pr open |
+| 10 | [spec](tasks/10-app-dashboard-nav/spec.md) | [#11](https://github.com/fahadzia88/factory/pull/11) | pr open |
 
 ## Changelog
 
@@ -229,3 +231,4 @@ to the Claude Code session the user names.
 - 2026-11-04 — Approved.
 - 2026-11-05 — Back to draft: the agent moved from eve to a Node service on the Claude Agent SDK. Task 06 now adds SDK `tool()`s in `agent/src/tools/`, checked by `node:test` tool tests and manual chat checks instead of eve evals. The app proxy is `/agent`, and the agent task goes to a Claude Code session. The api and app contracts are unchanged.
 - 2026-11-05 — Approved again.
+- 2026-11-05 — In progress: all ten task PRs open (#2–#11), stacked on the docs PR #1.
