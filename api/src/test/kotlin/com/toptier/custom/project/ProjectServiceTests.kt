@@ -3,10 +3,12 @@ package com.toptier.custom.project
 import com.toptier.custom.github.service.GitHubRepositoryChecker
 import com.toptier.custom.github.service.RepositoryCheck
 import com.toptier.custom.project.domain.ProjectStatus
+import com.toptier.custom.project.exception.GitHubUnavailableException
 import com.toptier.custom.project.exception.ProjectArchivedException
 import com.toptier.custom.project.exception.ProjectConflictException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
+import com.toptier.custom.project.exception.RepositoryNotFoundException
 import com.toptier.custom.project.service.ProjectInput
 import com.toptier.custom.project.service.ProjectService
 import com.toptier.custom.support.MutableClock
@@ -17,6 +19,7 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.then
 import org.mockito.Mockito.never
+import org.mockito.Mockito.reset
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.test.context.TestConfiguration
@@ -269,11 +272,72 @@ class ProjectServiceTests {
 	}
 
 	@Test
+	fun `verifies an unverified project without changing anything else`() {
+		given(checker.check("acme", "factory")).willReturn(RepositoryCheck.UNAVAILABLE)
+		val project = service.create(input(description = "Builds the apps.", status = "active"))
+		clock.advance(Duration.ofMinutes(5))
+		given(checker.check("acme", "factory")).willReturn(RepositoryCheck.FOUND)
+
+		val verified = service.verify(project.id!!)
+
+		assertTrue(verified.repositoryVerified)
+		assertEquals(START, verified.updatedAt)
+		assertEquals("Factory", verified.name)
+		assertEquals("Builds the apps.", verified.description)
+		assertEquals(ProjectStatus.ACTIVE, verified.status)
+		assertTrue(service.get(project.id!!).repositoryVerified)
+	}
+
+	@Test
+	fun `keeps a project unverified when the re-check finds no repository`() {
+		given(checker.check("acme", "factory")).willReturn(RepositoryCheck.UNAVAILABLE)
+		val project = service.create(input())
+		given(checker.check("acme", "factory")).willReturn(RepositoryCheck.NOT_FOUND)
+
+		assertThrows<RepositoryNotFoundException> { service.verify(project.id!!) }
+
+		assertFalse(service.get(project.id!!).repositoryVerified)
+	}
+
+	@Test
+	fun `keeps a project unverified when GitHub still can't be asked`() {
+		given(checker.check("acme", "factory")).willReturn(RepositoryCheck.UNAVAILABLE)
+		val project = service.create(input())
+
+		assertThrows<GitHubUnavailableException> { service.verify(project.id!!) }
+
+		assertFalse(service.get(project.id!!).repositoryVerified)
+	}
+
+	@Test
+	fun `returns a verified project as is without asking GitHub`() {
+		val project = service.create(input())
+		reset(checker)
+
+		val same = service.verify(project.id!!)
+
+		assertTrue(same.repositoryVerified)
+		then(checker).shouldHaveNoInteractions()
+	}
+
+	@Test
+	fun `refuses to verify an archived project`() {
+		given(checker.check("acme", "factory")).willReturn(RepositoryCheck.UNAVAILABLE)
+		val project = service.create(input())
+		service.archive(project.id!!)
+		reset(checker)
+
+		assertThrows<ProjectArchivedException> { service.verify(project.id!!) }
+		then(checker).shouldHaveNoInteractions()
+	}
+
+	@Test
 	fun `reports unknown ids as not found`() {
 		assertThrows<ProjectNotFoundException> { service.get(404) }
 		assertThrows<ProjectNotFoundException> { service.update(404, input(status = "active")) }
 		assertThrows<ProjectNotFoundException> { service.archive(404) }
 		assertThrows<ProjectNotFoundException> { service.restore(404) }
+		assertThrows<ProjectNotFoundException> { service.verify(404) }
 	}
 
 	private fun input(

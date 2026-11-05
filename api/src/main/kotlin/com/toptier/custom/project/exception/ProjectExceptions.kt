@@ -17,3 +17,11 @@ class ProjectArchivedException(val id: Long) :
 
 /** No project has this id. */
 class ProjectNotFoundException(val id: Long) : ProjectException("Project $id not found")
+
+/** GitHub reports the stored repository missing, so a re-check can't verify it. */
+class RepositoryNotFoundException(val id: Long) :
+	ProjectException("Repository not found on GitHub. Edit the project to fix its URL.")
+
+/** GitHub couldn't be asked (unreachable, rate-limited, too slow, or no token), so the project stays unverified. */
+class GitHubUnavailableException(val id: Long) :
+	ProjectException("GitHub couldn't be reached. Try again later.")

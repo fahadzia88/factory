@@ -62,4 +62,8 @@ class ProjectController(private val projectService: ProjectService) {
 	/** Makes an archived project listed and editable again. Idempotent. */
 	@PostMapping("/{id}/restore")
 	fun restore(@PathVariable id: Long): ProjectResponse = ProjectResponse.from(projectService.restore(id))
+
+	/** Re-checks an unverified project's repository with GitHub; 422 if it's missing, 503 if GitHub can't be asked. */
+	@PostMapping("/{id}/verify")
+	fun verify(@PathVariable id: Long): ProjectResponse = ProjectResponse.from(projectService.verify(id))
 }

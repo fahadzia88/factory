@@ -4,10 +4,12 @@ import com.toptier.custom.project.controller.ProjectController
 import com.toptier.custom.project.controller.ProjectExceptionHandler
 import com.toptier.custom.project.domain.Project
 import com.toptier.custom.project.domain.ProjectStatus
+import com.toptier.custom.project.exception.GitHubUnavailableException
 import com.toptier.custom.project.exception.ProjectArchivedException
 import com.toptier.custom.project.exception.ProjectConflictException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
+import com.toptier.custom.project.exception.RepositoryNotFoundException
 import com.toptier.custom.project.service.ProjectInput
 import com.toptier.custom.project.service.ProjectListQuery
 import com.toptier.custom.project.service.ProjectSummary
@@ -51,6 +53,7 @@ class ProjectControllerTests {
 		mockMvc.put("/api/projects/1") { json(BODY) }.andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/1/archive").andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/1/restore").andExpect { status { isUnauthorized() } }
+		mockMvc.post("/api/projects/1/verify").andExpect { status { isUnauthorized() } }
 		mockMvc.get("/api/projects").andExpect { status { isUnauthorized() } }
 		mockMvc.get("/api/projects/summary").andExpect { status { isUnauthorized() } }
 	}
@@ -192,6 +195,36 @@ class ProjectControllerTests {
 			status { isOk() }
 			jsonPath("$.archived") { value(false) }
 		}
+	}
+
+	@Test
+	fun `verifies a project's repository`() {
+		given(projectService.verify(42)).willReturn(project())
+
+		mockMvc.post("/api/projects/42/verify") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.repositoryVerified") { value(true) }
+		}
+	}
+
+	@Test
+	fun `answers verify failures as problem details`() {
+		given(projectService.verify(1)).willThrow(RepositoryNotFoundException(1))
+		given(projectService.verify(2)).willThrow(GitHubUnavailableException(2))
+		given(projectService.verify(3)).willThrow(ProjectArchivedException(3))
+		given(projectService.verify(4)).willThrow(ProjectNotFoundException(4))
+
+		mockMvc.post("/api/projects/1/verify") { auth() }.andExpect {
+			status { isUnprocessableContent() }
+			content { contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON) }
+			jsonPath("$.detail") { value("Repository not found on GitHub. Edit the project to fix its URL.") }
+		}
+		mockMvc.post("/api/projects/2/verify") { auth() }.andExpect {
+			status { isServiceUnavailable() }
+			jsonPath("$.detail") { value("GitHub couldn't be reached. Try again later.") }
+		}
+		mockMvc.post("/api/projects/3/verify") { auth() }.andExpect { status { isConflict() } }
+		mockMvc.post("/api/projects/4/verify") { auth() }.andExpect { status { isNotFound() } }
 	}
 
 	@Test
