@@ -112,6 +112,20 @@ The field keys are `name`, `repositoryUrl`, `description` and `status`.
 - Errors: `404`.
 - There is no `DELETE` route (`405`).
 
+### `POST /api/projects/{id}/verify`
+
+- No body. Runs the GitHub check again for an unverified project, and changes nothing else:
+  `updatedAt` stays as it was.
+- Response `200`: Project. `repositoryVerified: true` when GitHub found the repository. A project
+  that is already verified answers `200` as is, with no GitHub call.
+- Errors:
+  - `404` when no project has that id;
+  - `409` when the project is archived (the same message as `PUT`);
+  - `422` when GitHub reports the repository not found ("Repository not found on GitHub. Edit the
+    project to fix its URL."); the project stays unverified;
+  - `503` when GitHub can't be asked (unreachable, rate-limited, slower than 5 s, or no token):
+    "GitHub couldn't be reached. Try again later."; the project stays unverified.
+
 ### api → GitHub (`app.github.*`)
 
 - `GET https://api.github.com/repos/{owner}/{repo}` with `Authorization: Bearer <app.github.token>`,
@@ -156,6 +170,8 @@ Stack order, bottom first. Each task is one PR based on the row above it.
 | 08 | app   | `/projects/:id` detail page: fields, "Repository not verified", archived read-only view, archive with confirmation, restore, not-found page | 07 | AC-4, AC-9, AC-19–AC-23, AC-29, AC-30 | `feat/001-projects/08-app-project-detail` |
 | 09 | app   | `/projects/new` and `/projects/:id/edit`: shared form (status starts on `planning`), field errors from the API, values kept on failure | 08 | AC-3–AC-8, AC-11, AC-30 | `feat/001-projects/09-app-project-form` |
 | 10 | app   | Dashboard summary (status counts linking to the filtered list, 5 recent, View all, empty state with New project) and the "Projects" nav item | 09 | AC-1, AC-24, AC-25, AC-29, AC-30 | `feat/001-projects/10-app-dashboard-nav` |
+| 11 | api   | `POST /api/projects/{id}/verify`: `ProjectService.verify`, exceptions mapped to `422` and `503` | 10 | AC-31 | `feat/001-projects/11-api-project-verify` |
+| 12 | app   | "Verify repository" button on the detail page of an unverified, non-archived project | 11 | AC-31 | `feat/001-projects/12-app-verify-repository` |
 
 Who does what: `api` tasks go to the `api/` Claude Code session and `infra` to the coordinator
 (with the user's go-ahead). `app` tasks go to the `app/` Claude Code session, and the `agent` task
@@ -195,6 +211,7 @@ to the Claude Code session the user names.
 | AC-28 | 06             | Manual chat: asking to archive gets a refusal, the stream shows only `mcp__app__list_projects`/`get_project` tool events, and the project is unchanged |
 | AC-29 | 07, 08, 10     | Manual: API stopped → error with retry on list, detail and Dashboard |
 | AC-30 | 07, 08, 09, 10 | Manual at 375 px: no horizontal page scroll |
+| AC-31 | 11, 12         | `ProjectServiceTests` verify: found sets the flag without touching `updatedAt`, not found → 422, unavailable → 503, archived → 409, verified → no call; `ProjectControllerTests` statuses; manual button on detail |
 
 ## Rollout
 
@@ -204,6 +221,7 @@ to the Claude Code session the user names.
   API, so the Assistant just reports that there are none.
 - The app routes (07–09) are registered but unlinked: no nav item, and the Dashboard is unchanged.
 - 10 adds the "Projects" nav item and the Dashboard summary, which releases the feature.
+- 11 adds a route nothing calls yet; 12 adds the button, which only shows on unverified projects.
 - On release: create a fine-grained GitHub token with Metadata read on the repos projects will use,
   and set `API_GITHUB_TOKEN` in the root `.env`. Hibernate creates the `project` table on the
   API's next start (`ddl-auto=update`).
@@ -224,6 +242,8 @@ Docs PR: [#1](https://github.com/fahadzia88/factory/pull/1), the base of the sta
 | 08 | [spec](tasks/08-app-project-detail/spec.md) | [#9](https://github.com/fahadzia88/factory/pull/9) | pr open |
 | 09 | [spec](tasks/09-app-project-form/spec.md) | [#10](https://github.com/fahadzia88/factory/pull/10) | pr open |
 | 10 | [spec](tasks/10-app-dashboard-nav/spec.md) | [#11](https://github.com/fahadzia88/factory/pull/11) | pr open |
+| 11 | [spec](tasks/11-api-project-verify/spec.md) | — | not started |
+| 12 | [spec](tasks/12-app-verify-repository/spec.md) | — | not started |
 
 ## Changelog
 
@@ -232,3 +252,5 @@ Docs PR: [#1](https://github.com/fahadzia88/factory/pull/1), the base of the sta
 - 2026-11-05 — Back to draft: the agent moved from eve to a Node service on the Claude Agent SDK. Task 06 now adds SDK `tool()`s in `agent/src/tools/`, checked by `node:test` tool tests and manual chat checks instead of eve evals. The app proxy is `/agent`, and the agent task goes to a Claude Code session. The api and app contracts are unchanged.
 - 2026-11-05 — Approved again.
 - 2026-11-05 — In progress: all ten task PRs open (#2–#11), stacked on the docs PR #1.
+- 2026-11-05 — Back to draft: added `POST /api/projects/{id}/verify` and tasks 11 (api) and 12 (app) for the "Verify repository" button (AC-31). Existing contracts are unchanged.
+- 2026-11-05 — Approved again; tasks 11 and 12 in progress.
