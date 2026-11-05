@@ -27,7 +27,8 @@ runs in containers.
 1. Create a `.env` in the repo root. It's gitignored, so never commit it.
 
    ```
-   ANTHROPIC_API_KEY=sk-ant-...   # required by the agent
+   ANTHROPIC_API_KEY=sk-ant-...   # required by the agent, unless you use the next line instead
+   # CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...   # Claude subscription token (claude setup-token); leave ANTHROPIC_API_KEY unset
    API_TOKEN=change-me            # optional; defaults to 123456 (dev only)
    # MYSQL_DATABASE / MYSQL_USER / MYSQL_PASSWORD / MYSQL_ROOT_PASSWORD are optional too
    ```
