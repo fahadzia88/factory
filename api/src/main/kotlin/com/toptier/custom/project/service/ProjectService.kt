@@ -5,10 +5,12 @@ import com.toptier.custom.github.service.RepositoryCheck
 import com.toptier.custom.project.domain.Project
 import com.toptier.custom.project.domain.ProjectRepository
 import com.toptier.custom.project.domain.ProjectStatus
+import com.toptier.custom.project.exception.GitHubUnavailableException
 import com.toptier.custom.project.exception.ProjectArchivedException
 import com.toptier.custom.project.exception.ProjectConflictException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
+import com.toptier.custom.project.exception.RepositoryNotFoundException
 import jakarta.persistence.criteria.Predicate
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Page
@@ -94,6 +96,23 @@ class ProjectService(
 		project.assign(valid)
 		project.repositoryVerified = verified
 		project.updatedAt = clock.instant()
+		return save(project)
+	}
+
+	/**
+	 * Asks GitHub again about an unverified project's repository, changing nothing else: `updatedAt` stays, since
+	 * no one edited the project. A verified project is returned as is.
+	 */
+	fun verify(id: Long): Project {
+		val project = get(id)
+		if (project.archived) throw ProjectArchivedException(id)
+		if (project.repositoryVerified) return project
+		val repository = checkNotNull(GitHubRepositoryUrl.parse(project.repositoryUrl)) { "Stored URL of project $id is invalid" }
+		when (checker.check(repository.owner, repository.repo)) {
+			RepositoryCheck.FOUND -> project.repositoryVerified = true
+			RepositoryCheck.NOT_FOUND -> throw RepositoryNotFoundException(id)
+			RepositoryCheck.UNAVAILABLE -> throw GitHubUnavailableException(id)
+		}
 		return save(project)
 	}
 
