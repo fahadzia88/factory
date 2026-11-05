@@ -242,8 +242,8 @@ Docs PR: [#1](https://github.com/fahadzia88/factory/pull/1), the base of the sta
 | 08 | [spec](tasks/08-app-project-detail/spec.md) | [#9](https://github.com/fahadzia88/factory/pull/9) | pr open |
 | 09 | [spec](tasks/09-app-project-form/spec.md) | [#10](https://github.com/fahadzia88/factory/pull/10) | pr open |
 | 10 | [spec](tasks/10-app-dashboard-nav/spec.md) | [#11](https://github.com/fahadzia88/factory/pull/11) | pr open |
-| 11 | [spec](tasks/11-api-project-verify/spec.md) | — | not started |
-| 12 | [spec](tasks/12-app-verify-repository/spec.md) | — | not started |
+| 11 | [spec](tasks/11-api-project-verify/spec.md) | [#13](https://github.com/fahadzia88/factory/pull/13) | pr open |
+| 12 | [spec](tasks/12-app-verify-repository/spec.md) | [#14](https://github.com/fahadzia88/factory/pull/14) | pr open |
 
 ## Changelog
 
@@ -254,3 +254,4 @@ Docs PR: [#1](https://github.com/fahadzia88/factory/pull/1), the base of the sta
 - 2026-11-05 — In progress: all ten task PRs open (#2–#11), stacked on the docs PR #1.
 - 2026-11-05 — Back to draft: added `POST /api/projects/{id}/verify` and tasks 11 (api) and 12 (app) for the "Verify repository" button (AC-31). Existing contracts are unchanged.
 - 2026-11-05 — Approved again; tasks 11 and 12 in progress.
+- 2026-11-05 — Tasks 11 and 12 PRs open (#13, #14).
