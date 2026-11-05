@@ -119,3 +119,9 @@ const dateTime = new Intl.DateTimeFormat(undefined, {
 export function formatDateTime(iso: string) {
   return dateTime.format(new Date(iso))
 }
+
+/** A positive integer id from the URL, or null for anything else. */
+export function projectId(raw: string | undefined) {
+  const id = Number(raw)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
