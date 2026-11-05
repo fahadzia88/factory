@@ -1,4 +1,4 @@
-import { HospitalIcon, LogOutIcon } from "lucide-react"
+import { HospitalIcon, LogOutIcon, FactoryIcon } from "lucide-react"
 import {
   Link,
   NavLink,
@@ -50,8 +50,8 @@ export default function AppLayout() {
             to="/dashboard"
             className="flex items-center gap-2 font-heading font-medium"
           >
-            <HospitalIcon className="size-5 text-primary" aria-hidden />
-            <span className="hidden sm:inline">Skeleton</span>
+            <FactoryIcon className="size-5 text-primary" aria-hidden />
+            <span className="hidden sm:inline">Factory</span>
           </Link>
           <nav className="flex items-center gap-1" aria-label="Main">
             {NAV_ITEMS.map((item) => (

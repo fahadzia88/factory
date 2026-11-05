@@ -1,12 +1,13 @@
-name: skeleton
+name: factory
 
 services:
   api:
     image: gradle:jdk25
-    container_name: skeleton-api
+    container_name: factory-api
     # Gradle + Kotlin compiler + the app JVM need headroom; the Docker VM must have more than this to spare
     mem_limit: 2g
     working_dir: /workspace
+    restart: always
     volumes:
       - ./api:/workspace
       # Reuse the host's Gradle dependency + wrapper caches
@@ -14,7 +15,7 @@ services:
       - ~/.gradle/wrapper:/home/gradle/.gradle/wrapper
     environment:
       GRADLE_USER_HOME: /home/gradle/.gradle
-      DB_HOST: skeleton-mysql
+      DB_HOST: factory-mysql
       DB_PORT: 3306
       DB_NAME: ${MYSQL_DATABASE:-skeleton}
       DB_USER: ${MYSQL_USER:-skeleton}
@@ -27,11 +28,11 @@ services:
       mysql:
         condition: service_healthy
     # Replace with e.g. `gradle bootRun --no-daemon` once the project exists
-    command: sleep infinity
+    command: sh -c "if [ -f build.gradle ]; then gradle bootRun --no-daemon; else sleep infinity; fi"
 
   app:
     image: node:lts
-    container_name: skeleton-app
+    container_name: factory-app
     working_dir: /workspace
     volumes:
       - ./app:/workspace
@@ -52,7 +53,7 @@ services:
   agent:
     # eve needs Node 24 (see agent/package.json engines)
     image: node:24
-    container_name: skeleton-agent
+    container_name: factory-agent
     working_dir: /workspace
     volumes:
       - ./agent:/workspace
@@ -83,7 +84,7 @@ services:
 
   mysql:
     image: mysql:8.4
-    container_name: skeleton-mysql
+    container_name: factory-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-skeleton}
