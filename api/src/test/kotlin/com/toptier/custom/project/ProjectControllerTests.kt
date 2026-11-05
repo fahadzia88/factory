@@ -9,6 +9,8 @@ import com.toptier.custom.project.exception.ProjectConflictException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
 import com.toptier.custom.project.service.ProjectInput
+import com.toptier.custom.project.service.ProjectListQuery
+import com.toptier.custom.project.service.ProjectSummary
 import com.toptier.custom.project.service.ProjectService
 import com.toptier.custom.security.config.SecurityConfig
 import com.toptier.custom.security.config.SecurityProperties
@@ -18,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -47,6 +51,58 @@ class ProjectControllerTests {
 		mockMvc.put("/api/projects/1") { json(BODY) }.andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/1/archive").andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/1/restore").andExpect { status { isUnauthorized() } }
+		mockMvc.get("/api/projects").andExpect { status { isUnauthorized() } }
+		mockMvc.get("/api/projects/summary").andExpect { status { isUnauthorized() } }
+	}
+
+	@Test
+	fun `lists projects with the query passed through`() {
+		val query = ProjectListQuery.of("fac", "active", true, "name", "desc", 2, 10)
+		given(projectService.list(query)).willReturn(PageImpl(listOf(project()), PageRequest.of(1, 10), 11))
+
+		mockMvc.get("/api/projects?q=fac&status=active&includeArchived=true&sort=name&direction=desc&page=2&size=10") {
+			auth()
+		}.andExpect {
+			status { isOk() }
+			jsonPath("$.items[0].id") { value(42) }
+			jsonPath("$.page") { value(2) }
+			jsonPath("$.size") { value(10) }
+			jsonPath("$.totalItems") { value(11) }
+			jsonPath("$.totalPages") { value(2) }
+		}
+	}
+
+	@Test
+	fun `rejects an unknown sort`() {
+		mockMvc.get("/api/projects?sort=id") { auth() }.andExpect {
+			status { isBadRequest() }
+			jsonPath("$.errors.sort") { value("Unknown value.") }
+		}
+	}
+
+	@Test
+	fun `rejects a parameter of the wrong type as a problem detail`() {
+		mockMvc.get("/api/projects?includeArchived=maybe") { auth() }.andExpect {
+			status { isBadRequest() }
+			content { contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON) }
+			jsonPath("$.detail") { value("Invalid value for includeArchived.") }
+		}
+	}
+
+	@Test
+	fun `summarizes for the Dashboard`() {
+		given(projectService.summary()).willReturn(
+			ProjectSummary(ProjectStatus.entries.associateWithTo(linkedMapOf()) { if (it == ProjectStatus.ACTIVE) 5L else 0L }, listOf(project())),
+		)
+
+		mockMvc.get("/api/projects/summary") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.counts.planning") { value(0) }
+			jsonPath("$.counts.active") { value(5) }
+			jsonPath("$.counts.maintenance") { value(0) }
+			jsonPath("$.counts.retired") { value(0) }
+			jsonPath("$.recent[0].name") { value("Factory") }
+		}
 	}
 
 	@Test
