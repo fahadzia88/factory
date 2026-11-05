@@ -29,8 +29,11 @@ runs in containers.
    ```
    ANTHROPIC_API_KEY=sk-ant-...   # required by the agent
    API_TOKEN=change-me            # optional; defaults to 123456 (dev only)
+   API_GITHUB_TOKEN=github_pat_...   # optional; read-only token so the API can check project repos
    # MYSQL_DATABASE / MYSQL_USER / MYSQL_PASSWORD / MYSQL_ROOT_PASSWORD are optional too
    ```
+
+   Without `API_GITHUB_TOKEN`, projects still save, but show "Repository not verified".
 
 2. Start the stack:
 
