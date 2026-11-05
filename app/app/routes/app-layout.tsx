@@ -30,6 +30,7 @@ export function HydrateFallback() {
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/projects", label: "Projects" },
   { to: "/assistant", label: "Assistant" },
 ]
 
@@ -45,7 +46,7 @@ export default function AppLayout() {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <Link
             to="/dashboard"
             className="flex items-center gap-2 font-heading font-medium"
@@ -53,14 +54,18 @@ export default function AppLayout() {
             <FactoryIcon className="size-5 text-primary" aria-hidden />
             <span className="hidden sm:inline">Factory</span>
           </Link>
-          <nav className="flex items-center gap-1" aria-label="Main">
+          {/* Scrolls sideways on narrow phones instead of pushing Sign out off screen */}
+          <nav
+            className="flex min-w-0 items-center gap-1 overflow-x-auto"
+            aria-label="Main"
+          >
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                    "shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                     isActive && "bg-muted text-foreground"
                   )
                 }
@@ -72,7 +77,7 @@ export default function AppLayout() {
           <Button
             variant="ghost"
             size="sm"
-            className="ml-auto"
+            className="ml-auto shrink-0"
             onClick={handleSignOut}
           >
             <LogOutIcon aria-hidden />
