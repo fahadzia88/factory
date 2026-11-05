@@ -11,6 +11,7 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 /** Maps project errors to ProblemDetail; rejected saves carry an `errors` map of field to message. */
 @RestControllerAdvice(basePackageClasses = [ProjectController::class])
@@ -33,6 +34,11 @@ class ProjectExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException::class)
 	fun handleUnreadable(ex: HttpMessageNotReadableException): ProblemDetail =
 		ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "The request body isn't valid JSON.")
+
+	/** A query or path parameter of the wrong type, e.g. `includeArchived=maybe` or a non-numeric id. */
+	@ExceptionHandler(MethodArgumentTypeMismatchException::class)
+	fun handleTypeMismatch(ex: MethodArgumentTypeMismatchException): ProblemDetail =
+		ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid value for ${ex.name}.")
 
 	private fun fieldErrors(status: HttpStatus, errors: Map<String, String>): ProblemDetail =
 		ProblemDetail.forStatusAndDetail(status, "The project couldn't be saved.").apply { setProperty("errors", errors) }
