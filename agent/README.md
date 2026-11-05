@@ -205,6 +205,14 @@ Add it to the `tools` array in `src/agent.ts`. The tools are served as the in-pr
 `app`, so the model sees `mcp__app__get_health`, and `allowedTools: ["mcp__app"]` lets them run
 without a prompt. Keep tools narrow and read-only unless the API checks the write.
 
+Current tools:
+
+- `list_projects` — lists projects from `GET /api/projects`, archived ones included by default,
+  reading every page (100 at a time, at most 20 pages).
+- `get_project` — one project from `GET /api/projects/{id}`, or `{ found: false }`.
+
+Run `npm test` for the tool tests (`node:test`, with a stubbed `fetch`).
+
 ## Troubleshooting
 
 - **`error` event "Not logged in · Please run /login":** neither `ANTHROPIC_API_KEY` nor
