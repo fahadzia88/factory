@@ -192,13 +192,15 @@ names other sessions at dispatch.
 
 ## Progress
 
+Docs PR: [#16](https://github.com/fahadzia88/factory/pull/16), the base of the stack. Merge bottom-up.
+
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
-| 01 | [spec](tasks/01-api-github-pull-client/spec.md) | | not started |
-| 02 | [spec](tasks/02-api-pull-endpoints/spec.md) | | not started |
-| 03 | [spec](tasks/03-app-pull-detail/spec.md) | | not started |
-| 04 | [spec](tasks/04-app-pull-files/spec.md) | | not started |
-| 05 | [spec](tasks/05-app-pull-list/spec.md) | | not started |
+| 01 | [spec](tasks/01-api-github-pull-client/spec.md) | [#17](https://github.com/fahadzia88/factory/pull/17) | pr open |
+| 02 | [spec](tasks/02-api-pull-endpoints/spec.md) | [#18](https://github.com/fahadzia88/factory/pull/18) | pr open |
+| 03 | [spec](tasks/03-app-pull-detail/spec.md) | [#19](https://github.com/fahadzia88/factory/pull/19) | pr open |
+| 04 | [spec](tasks/04-app-pull-files/spec.md) | [#20](https://github.com/fahadzia88/factory/pull/20) | pr open |
+| 05 | [spec](tasks/05-app-pull-list/spec.md) | [#21](https://github.com/fahadzia88/factory/pull/21) | pr open |
 
 ## Changelog
 
@@ -206,3 +208,4 @@ names other sessions at dispatch.
 - 2026-11-05 — Approved.
 - 2026-11-05 — Task specs written.
 - 2026-11-05 — Specs approved; in progress.
+- 2026-11-05 — All five task PRs open (#17–#21), stacked on the docs PR #16.
