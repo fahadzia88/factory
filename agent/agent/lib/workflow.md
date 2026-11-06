@@ -7,8 +7,10 @@ the equivalents below.
 
 ## Where the work happens
 
-- You work on your own clone of the GitHub repo, not on anyone's checkout. Read any branch with
-  `repo_list`, `repo_read` and `repo_search`. `ref: "main"` is the merged code.
+- You work in the factory project's checkout on the shared `/repos` volume, not on anyone's local
+  checkout. `git_checkout` asks the API for the branch's worktree, so it shows on the project's
+  page. Read any branch with `repo_list`, `repo_read` and `repo_search`. `ref: "main"` is the
+  merged code.
 - A feature's documents live on its docs branch `feat/<NNN>-<slug>/00-docs`, under
   `feature/<NNN>-<slug>/`. Open it with `git_checkout` before writing. Reading that branch shows
   your uncommitted edits.

@@ -56,9 +56,11 @@ root agent
 `api` and `infra` tasks stay in Claude Code (the agent container has no JDK); `feature-dispatch` tells
 you when to run `/stacked-pr` there.
 
-**Where the work happens.** The subagents never touch your checkout. On first use the agent clones the
-repo over HTTPS into the `agent_git` volume (`/git/repo.git`, bare) and adds a worktree per branch under
-`/git/worktrees/`. You see its work as pushed branches and PRs. Delete the volume to start clean.
+**Where the work happens.** The subagents never touch your checkout. They work in the factory project's
+checkout on the shared `repos` volume (`/repos/<project-id>`), which you create by registering
+`https://github.com/<GITHUB_REPO>` as a project and clicking "Check out repository". Each feature branch
+gets a worktree under `/repos/<project-id>.worktrees/`, created through the API and listed on the
+project's page. Without a ready checkout the tools stop and say so.
 
 **Guardrails, enforced in code (`lib/`), not just in prompts:**
 
@@ -68,8 +70,9 @@ repo over HTTPS into the `agent_git` volume (`/git/repo.git`, bare) and adds a w
 - A doc's `status` changes only through `doc_set_status`; setting `approved` asks you to confirm in the
   chat. An approved doc can't be edited without going back to `draft`.
 - Task PRs target the branch below them; force-pushes are `--force-with-lease` on task branches only.
-- `run_checks` runs only the folder's fixed checks, with no secrets in their environment. The GitHub
-  token is sent as a per-command header and never written to disk.
+- `run_checks` runs only the folder's fixed checks, with no secrets in their environment. The agent
+  has no git credentials: fetch and push go through the API, which holds its own token. `GITHUB_TOKEN`
+  is only for the pull request API.
 - Subagents have `defaultTools: false`: no sandbox shell or web tools, only their own `tools/`.
 
 Each subagent's `tools/` re-exports from `lib/tools.ts`, so its folder lists exactly what it can do.
