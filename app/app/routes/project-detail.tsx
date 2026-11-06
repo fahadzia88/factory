@@ -4,11 +4,13 @@ import {
   ExternalLinkIcon,
   PencilIcon,
   RefreshCwIcon,
+  TriangleAlertIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Form, Link, useNavigation, useRevalidator } from "react-router"
 import { toast } from "sonner"
 
+import { UnsavedWorkList } from "~/components/checkouts/unsaved-work-list"
 import { PageHeader } from "~/components/page-header"
 import {
   ProjectBreadcrumb,
@@ -35,6 +37,11 @@ import {
 } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import { ApiError, apiErrorMessage } from "~/lib/api"
+import {
+  checkoutError,
+  getUnsavedWork,
+  type UnsavedWork,
+} from "~/lib/checkouts"
 import {
   archiveProject,
   formatDateTime,
@@ -149,7 +156,7 @@ export default function ProjectDetail({
               <PencilIcon aria-hidden />
               Edit
             </Button>
-            <ArchiveDialog name={project.name} />
+            <ArchiveDialog name={project.name} projectId={project.id} />
           </>
         )}
       </PageHeader>
@@ -216,9 +223,47 @@ function VerifyButton() {
   )
 }
 
-function ArchiveDialog({ name }: { name: string }) {
+type UnsavedState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "loaded"; items: UnsavedWork[] }
+  | { status: "error"; message: string }
+
+function ArchiveDialog({
+  name,
+  projectId,
+}: {
+  name: string
+  projectId: number
+}) {
   const [open, setOpen] = useState(false)
+  const [unsaved, setUnsaved] = useState<UnsavedState>({ status: "idle" })
   const submitting = useSubmitting("archive")
+
+  useEffect(() => {
+    if (!open) {
+      setUnsaved({ status: "idle" })
+      return
+    }
+    let cancelled = false
+    setUnsaved({ status: "loading" })
+    getUnsavedWork(projectId).then(
+      (items) => {
+        if (!cancelled) setUnsaved({ status: "loaded", items })
+      },
+      (error) => {
+        if (!cancelled) {
+          setUnsaved({ status: "error", message: checkoutError(error).message })
+        }
+      }
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [open, projectId])
+
+  const hasUnsaved = unsaved.status === "loaded" && unsaved.items.length > 0
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
@@ -232,16 +277,52 @@ function ArchiveDialog({ name }: { name: string }) {
           <DialogTitle>Archive {name}?</DialogTitle>
           <DialogDescription>
             It's hidden from the projects list and the Dashboard. You can
-            restore it at any time.
+            restore it at any time. Its repository checkout is deleted too, and
+            restoring the project doesn't bring it back.
           </DialogDescription>
         </DialogHeader>
+        {unsaved.status === "loading" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Spinner />
+            Checking for unsaved work…
+          </div>
+        )}
+        {unsaved.status === "loaded" && unsaved.items.length > 0 && (
+          <div className="flex min-w-0 flex-col gap-3">
+            <Alert variant="destructive">
+              <TriangleAlertIcon aria-hidden />
+              <AlertTitle>
+                Some worktrees have work that isn't on GitHub
+              </AlertTitle>
+              <AlertDescription>Archiving deletes it.</AlertDescription>
+            </Alert>
+            <UnsavedWorkList items={unsaved.items} />
+          </div>
+        )}
+        {unsaved.status === "error" && (
+          <Alert>
+            <AlertTitle>Couldn't check for unsaved work</AlertTitle>
+            <AlertDescription>
+              <p>{unsaved.message}</p>
+              <p>
+                Archiving deletes the checkout, including anything not pushed to
+                GitHub.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
         <Form method="post" onSubmit={() => setOpen(false)}>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>
               Cancel
             </DialogClose>
-            <Button type="submit" name="intent" value="archive">
-              Archive
+            <Button
+              type="submit"
+              name="intent"
+              value="archive"
+              disabled={unsaved.status === "loading"}
+            >
+              {hasUnsaved ? "Archive anyway" : "Archive"}
             </Button>
           </DialogFooter>
         </Form>
