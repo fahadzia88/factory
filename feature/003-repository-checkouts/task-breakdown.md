@@ -251,7 +251,7 @@ Docs PR: [#23](https://github.com/fahadzia88/factory/pull/23), the base of the s
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
 | 01 | [spec](tasks/01-infra-repos-volume/spec.md) | [#24](https://github.com/fahadzia88/factory/pull/24) | pr open |
-| 02 | [spec](tasks/02-api-git-runner/spec.md) | | not started |
+| 02 | [spec](tasks/02-api-git-runner/spec.md) | [#25](https://github.com/fahadzia88/factory/pull/25) | pr open |
 | 03 | [spec](tasks/03-api-checkout-clone/spec.md) | | not started |
 | 04 | [spec](tasks/04-api-checkout-fetch/spec.md) | | not started |
 | 05 | [spec](tasks/05-api-worktrees/spec.md) | | not started |
