@@ -12,6 +12,9 @@ import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.InvalidBranchException
 import com.toptier.custom.checkout.exception.MainWorktreeException
+import com.toptier.custom.checkout.exception.PushDefaultBranchException
+import com.toptier.custom.checkout.exception.PushRejectedException
+import com.toptier.custom.checkout.exception.WorktreeMissingException
 import com.toptier.custom.checkout.exception.WorktreeNotFoundException
 import com.toptier.custom.checkout.exception.WorktreeUnsavedException
 import com.toptier.custom.checkout.exception.describe
@@ -76,6 +79,18 @@ class CheckoutExceptionHandler {
 	fun handleWorktreeUnsaved(ex: WorktreeUnsavedException): ProblemDetail =
 		problem(HttpStatus.CONFLICT, "worktree_unsaved", ex.message!!)
 			.apply { setProperty("unsaved", UnsavedWorkResponse.from(ex.unsaved)) }
+
+	@ExceptionHandler(PushDefaultBranchException::class)
+	fun handlePushDefaultBranch(ex: PushDefaultBranchException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "push_default_branch", ex.message!!)
+
+	@ExceptionHandler(PushRejectedException::class)
+	fun handlePushRejected(ex: PushRejectedException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "push_rejected", ex.message!!)
+
+	@ExceptionHandler(WorktreeMissingException::class)
+	fun handleWorktreeMissing(ex: WorktreeMissingException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "worktree_missing", ex.message!!)
 
 	@ExceptionHandler(GitRemoteException::class)
 	fun handleGitRemote(ex: GitRemoteException): ProblemDetail {

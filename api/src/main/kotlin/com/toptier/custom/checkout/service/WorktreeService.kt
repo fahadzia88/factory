@@ -7,11 +7,18 @@ import com.toptier.custom.checkout.domain.RepositoryWorktree
 import com.toptier.custom.checkout.domain.RepositoryWorktreeRepository
 import com.toptier.custom.checkout.exception.BaseNotFoundException
 import com.toptier.custom.checkout.exception.BranchCheckedOutException
+import com.toptier.custom.checkout.exception.CheckoutException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
 import com.toptier.custom.checkout.exception.CheckoutNotReadyException
 import com.toptier.custom.checkout.exception.GitCommandException
+import com.toptier.custom.checkout.exception.GitException
+import com.toptier.custom.checkout.exception.GitFailure
+import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.InvalidBranchException
 import com.toptier.custom.checkout.exception.MainWorktreeException
+import com.toptier.custom.checkout.exception.PushDefaultBranchException
+import com.toptier.custom.checkout.exception.PushRejectedException
+import com.toptier.custom.checkout.exception.WorktreeMissingException
 import com.toptier.custom.checkout.exception.WorktreeNotFoundException
 import com.toptier.custom.checkout.exception.WorktreeUnsavedException
 import com.toptier.custom.project.service.ProjectService
@@ -26,8 +33,11 @@ import java.time.Clock
 /** A located checkout and, when one was asked for, one of its worktrees. */
 data class WorktreeLocation(val checkout: RepositoryCheckout, val worktree: RepositoryWorktree?)
 
+/** A pushed worktree: its [branch] and the short SHA of its [head]. */
+data class PushResult(val branch: String, val head: String)
+
 /**
- * Adds and removes a checkout's worktrees, one folder per branch under `<root>/<projectId>.worktrees`.
+ * Adds, removes and pushes a checkout's worktrees, one folder per branch under `<root>/<projectId>.worktrees`.
  * Like [CheckoutService], not `@Transactional`: no transaction stays open across a git call.
  */
 @Service
@@ -153,6 +163,46 @@ class WorktreeService(
 				runner.runOrThrow(clone, listOf("branch", "-D", worktree.branch))
 			}
 			worktrees.delete(worktree)
+		}
+	}
+
+	/**
+	 * Pushes the worktree's branch to `origin` with its upstream set, then fetches. With [force] it
+	 * pushes `--force-with-lease`, compared against `origin/<branch>` as of the last fetch, so there's
+	 * deliberately no fetch first. Throws [PushDefaultBranchException] (before any git runs),
+	 * [WorktreeMissingException], [PushRejectedException], and [GitRemoteException] for other remote failures.
+	 */
+	fun push(projectId: Long, worktreeId: Long, force: Boolean): PushResult {
+		val (checkout, found) = locate(projectId, worktreeId)
+		val worktree = found!!
+		val branch = worktree.branch
+		if (branch == checkout.defaultBranch) throw PushDefaultBranchException(branch)
+		val dir = Path.of(worktree.path)
+		if (inspector.missing(dir)) throw WorktreeMissingException(branch)
+		runner.requireToken()
+		return locks.withLock(checkout.id!!) {
+			val args = buildList {
+				add("push")
+				if (force) add("--force-with-lease=$branch")
+				addAll(listOf("-u", "origin", "$branch:$branch"))
+			}
+			try {
+				runner.runOrThrow(dir, args, network = true)
+			} catch (ex: GitCommandException) {
+				throw when (ex.failure) {
+					GitFailure.REJECTED -> PushRejectedException(lease = false)
+					GitFailure.STALE_LEASE -> PushRejectedException(lease = true)
+					else -> GitRemoteException(ex.failure)
+				}
+			}
+			try {
+				checkoutService.fetchUnderLock(checkout)
+			} catch (ex: GitException) {
+				log.warn("Checkout {}: fetch after pushing {} failed: {}", checkout.id, branch, ex.message)
+			} catch (ex: CheckoutException) {
+				log.warn("Checkout {}: fetch after pushing {} failed: {}", checkout.id, branch, ex.message)
+			}
+			PushResult(branch, runner.runOrThrow(dir, listOf("rev-parse", "--short", "HEAD")).trim())
 		}
 	}
 
