@@ -5,11 +5,14 @@ import java.time.Duration
 
 @ConfigurationProperties(prefix = "app.github")
 data class GitHubProperties(
-	/** Read-only token (Metadata: read) for checking repositories exist; blank skips the check. */
+	/**
+	 * Read-only token for checking repositories exist and reading their pull requests ("Metadata: read" and
+	 * "Pull requests: read"); blank skips the check and makes pull request reads fail as not configured.
+	 */
 	val token: String = "",
 	/** GitHub REST API base URL, e.g. https://api.github.com */
 	val baseUrl: String = "https://api.github.com",
-	/** Connect and read timeout for one check; a slower answer counts as GitHub being unavailable. */
+	/** Connect and read timeout for every GitHub call; a slower answer counts as GitHub being unavailable. */
 	val timeout: Duration = Duration.ofSeconds(5),
 ) {
 	init {
