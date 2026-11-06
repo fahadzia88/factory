@@ -72,3 +72,7 @@ class PushRejectedException(val lease: Boolean) : CheckoutException(
 /** The worktree of [branch] has no folder on disk. */
 class WorktreeMissingException(val branch: String) :
 	CheckoutException("The worktree's folder is missing. Remove it and add it again.")
+
+/** The project is archived, so its checkout can't be started or changed; restoring it allows that again. */
+class CheckoutProjectArchivedException(val projectId: Long) :
+	CheckoutException("This project is archived. Restore it to use its repository checkout.")

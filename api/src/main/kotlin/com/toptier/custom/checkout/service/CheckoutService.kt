@@ -10,6 +10,7 @@ import com.toptier.custom.checkout.exception.CheckoutException
 import com.toptier.custom.checkout.exception.CheckoutExistsException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
 import com.toptier.custom.checkout.exception.CheckoutNotReadyException
+import com.toptier.custom.checkout.exception.CheckoutProjectArchivedException
 import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitException
 import com.toptier.custom.checkout.exception.GitFailure
@@ -17,6 +18,9 @@ import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.describe
+import com.toptier.custom.project.domain.Project
+import com.toptier.custom.project.domain.ProjectRepository
+import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.service.ProjectService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
@@ -63,6 +67,7 @@ data class CheckoutView(val checkout: RepositoryCheckout, val worktrees: List<Wo
 @Service
 class CheckoutService(
 	private val projects: ProjectService,
+	private val projectRepository: ProjectRepository,
 	private val checkouts: RepositoryCheckoutRepository,
 	private val worktrees: RepositoryWorktreeRepository,
 	private val runner: GitRunner,
@@ -87,12 +92,39 @@ class CheckoutService(
 	}
 
 	/**
+	 * The checkout of the project whose `repositoryUrl` is exactly [url], archived or not. Throws
+	 * `ProjectNotFoundException` (its id is a placeholder) or [CheckoutNotFoundException].
+	 */
+	fun findByRepositoryUrl(url: String): CheckoutView {
+		val project = projectRepository.findByRepositoryUrl(url) ?: throw ProjectNotFoundException(-1)
+		return get(project.id!!)
+	}
+
+	/**
+	 * The work that isn't on GitHub in each worktree of a ready checkout, main first, leaving out
+	 * clean and missing worktrees; empty when there's no ready checkout. Throws `ProjectNotFoundException`.
+	 */
+	fun unsaved(projectId: Long): List<UnsavedWork> {
+		projects.get(projectId)
+		val checkout = checkouts.findByProjectId(projectId) ?: return emptyList()
+		if (checkout.state != CheckoutState.READY) return emptyList()
+		return locks.withLock(checkout.id!!) {
+			worktrees.findByCheckoutIdOrderByMainDescCreatedAtAscIdAsc(checkout.id!!)
+				.filterNot { inspector.missing(Path.of(it.path)) }
+				.map { inspector.unsaved(it) }
+				.filterNot { it.isEmpty() }
+		}
+	}
+
+	/**
 	 * Starts cloning the project's repository and returns the `CLONING` checkout; the clone runs on
 	 * the checkout executor. A `FAILED` checkout is reused (Retry); a cloning or ready one throws
-	 * [CheckoutExistsException]. A blank git token throws [GitNotConfiguredException] before anything is written.
+	 * [CheckoutExistsException]. A blank git token throws [GitNotConfiguredException] before anything is written,
+	 * and an archived project [CheckoutProjectArchivedException].
 	 */
 	fun start(projectId: Long): CheckoutView {
 		val project = projects.get(projectId)
+		requireActive(project)
 		runner.requireToken()
 		val now = clock.instant()
 		val existing = checkouts.findByProjectId(projectId)
@@ -122,7 +154,7 @@ class CheckoutService(
 		val id = saved.id!!
 		val url = project.repositoryUrl
 		val row = try {
-			executor.execute { clone(id, url) }
+			executor.execute { clone(id, projectId, url) }
 			saved
 		} catch (_: TaskRejectedException) {
 			log.warn("Checkout {}: clone rejected, the clone queue is full", id)
@@ -135,15 +167,20 @@ class CheckoutService(
 
 	/**
 	 * Clones [url] into the checkout's folder and marks it `READY` with its main worktree, or
-	 * `FAILED` with the reason in plain words. Does nothing unless the checkout is `CLONING`.
-	 * Public so tests can run it directly.
+	 * `FAILED` with the reason in plain words. Does nothing unless the checkout is `CLONING`. When
+	 * the row is gone (the project was archived), before or after cloning, it deletes the project's
+	 * folders instead, unless the project has a newer checkout. Public so tests can run it directly.
 	 */
-	fun clone(checkoutId: Long, url: String) {
+	fun clone(checkoutId: Long, projectId: Long, url: String) {
 		locks.withLock(checkoutId) {
+			val dir = paths.checkoutDir(projectId)
+			val trees = paths.worktreesDir(projectId)
 			val checkout = checkouts.findById(checkoutId).orElse(null)
-			if (checkout == null || checkout.state != CheckoutState.CLONING) return@withLock
-			val dir = paths.checkoutDir(checkout.projectId)
-			val trees = paths.worktreesDir(checkout.projectId)
+			if (checkout == null) {
+				if (checkouts.findByProjectId(projectId) == null) deleteFolders(dir, trees)
+				return@withLock
+			}
+			if (checkout.state != CheckoutState.CLONING) return@withLock
 			try {
 				deleteFolders(dir, trees)
 				Files.createDirectories(paths.root)
@@ -191,10 +228,10 @@ class CheckoutService(
 	/**
 	 * Fetches the project's ready checkout and fast-forwards a clean main worktree. Throws
 	 * `ProjectNotFoundException`, [CheckoutNotFoundException], [CheckoutNotReadyException],
-	 * [GitNotConfiguredException], [GitRemoteException] or [GitTimeoutException].
+	 * [GitNotConfiguredException], [GitRemoteException], [GitTimeoutException] or [CheckoutProjectArchivedException].
 	 */
 	fun fetch(projectId: Long): CheckoutView {
-		projects.get(projectId)
+		requireActive(projects.get(projectId))
 		val checkout = checkouts.findByProjectId(projectId) ?: throw CheckoutNotFoundException()
 		if (checkout.state != CheckoutState.READY) throw CheckoutNotReadyException()
 		runner.requireToken()
@@ -274,6 +311,10 @@ class CheckoutService(
 		}
 		is GitNotConfiguredException -> ex.message!!
 		else -> "The clone failed unexpectedly."
+	}
+
+	private fun requireActive(project: Project) {
+		if (project.archived) throw CheckoutProjectArchivedException(project.id!!)
 	}
 
 	/** Runs a network git call, turning a non-zero exit into [GitRemoteException]; timeouts and a missing token pass through. */

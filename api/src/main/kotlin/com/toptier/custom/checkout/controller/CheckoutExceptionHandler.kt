@@ -6,6 +6,7 @@ import com.toptier.custom.checkout.exception.BranchCheckedOutException
 import com.toptier.custom.checkout.exception.CheckoutExistsException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
 import com.toptier.custom.checkout.exception.CheckoutNotReadyException
+import com.toptier.custom.checkout.exception.CheckoutProjectArchivedException
 import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
@@ -53,6 +54,10 @@ class CheckoutExceptionHandler {
 	@ExceptionHandler(CheckoutNotReadyException::class)
 	fun handleCheckoutNotReady(ex: CheckoutNotReadyException): ProblemDetail =
 		problem(HttpStatus.CONFLICT, "checkout_not_ready", ex.message!!)
+
+	@ExceptionHandler(CheckoutProjectArchivedException::class)
+	fun handleProjectArchived(ex: CheckoutProjectArchivedException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "project_archived", ex.message!!)
 
 	@ExceptionHandler(InvalidBranchException::class)
 	fun handleInvalidBranch(ex: InvalidBranchException): ProblemDetail =

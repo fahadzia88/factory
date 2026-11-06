@@ -9,6 +9,7 @@ import com.toptier.custom.project.exception.ProjectConflictException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
 import com.toptier.custom.project.exception.RepositoryNotFoundException
+import com.toptier.custom.project.service.ProjectArchivedEvent
 import com.toptier.custom.project.service.ProjectInput
 import com.toptier.custom.project.service.ProjectService
 import com.toptier.custom.support.MutableClock
@@ -26,6 +27,8 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.context.event.ApplicationEvents
+import org.springframework.test.context.event.RecordApplicationEvents
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -35,6 +38,7 @@ import kotlin.test.assertTrue
 
 @DataJpaTest
 @Import(ProjectService::class, ProjectServiceTests.Config::class)
+@RecordApplicationEvents
 class ProjectServiceTests {
 
 	@TestConfiguration
@@ -51,6 +55,9 @@ class ProjectServiceTests {
 
 	@MockitoBean
 	lateinit var checker: GitHubRepositoryChecker
+
+	@Autowired
+	lateinit var events: ApplicationEvents
 
 	@BeforeEach
 	fun foundByDefault() {
@@ -248,6 +255,18 @@ class ProjectServiceTests {
 
 		clock.advance(Duration.ofMinutes(1))
 		assertEquals(archivedAt, service.archive(project.id!!).updatedAt)
+	}
+
+	@Test
+	fun `archive publishes the archived event, restore doesn't`() {
+		val project = service.create(input())
+
+		service.archive(project.id!!)
+		assertEquals(listOf(ProjectArchivedEvent(project.id!!)), events.stream(ProjectArchivedEvent::class.java).toList())
+
+		events.clear()
+		service.restore(project.id!!)
+		assertEquals(0, events.stream(ProjectArchivedEvent::class.java).count())
 	}
 
 	@Test

@@ -10,6 +10,7 @@ import com.toptier.custom.checkout.exception.BranchCheckedOutException
 import com.toptier.custom.checkout.exception.CheckoutException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
 import com.toptier.custom.checkout.exception.CheckoutNotReadyException
+import com.toptier.custom.checkout.exception.CheckoutProjectArchivedException
 import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitException
 import com.toptier.custom.checkout.exception.GitFailure
@@ -57,10 +58,12 @@ class WorktreeService(
 
 	/**
 	 * The project's checkout and, with [worktreeId], its worktree. Throws `ProjectNotFoundException`,
-	 * [CheckoutNotFoundException] or [WorktreeNotFoundException] (also for another checkout's worktree).
+	 * [CheckoutNotFoundException] or [WorktreeNotFoundException] (also for another checkout's worktree),
+	 * and with [active], [CheckoutProjectArchivedException] for an archived project.
 	 */
-	fun locate(projectId: Long, worktreeId: Long? = null): WorktreeLocation {
-		projects.get(projectId)
+	fun locate(projectId: Long, worktreeId: Long? = null, active: Boolean = false): WorktreeLocation {
+		val project = projects.get(projectId)
+		if (active && project.archived) throw CheckoutProjectArchivedException(projectId)
 		val checkout = checkouts.findByProjectId(projectId) ?: throw CheckoutNotFoundException()
 		val worktree = worktreeId?.let {
 			worktrees.findByIdAndCheckoutId(it, checkout.id!!) ?: throw WorktreeNotFoundException()
@@ -75,7 +78,7 @@ class WorktreeService(
 	 * [CheckoutNotReadyException], and the fetch's git exceptions.
 	 */
 	fun add(projectId: Long, branch: String?, base: String?): WorktreeView {
-		val checkout = locate(projectId).checkout
+		val checkout = locate(projectId, active = true).checkout
 		if (checkout.state != CheckoutState.READY) throw CheckoutNotReadyException()
 		val name = branch?.trim()
 		if (name.isNullOrEmpty() || !runner.isValidBranchName(name)) throw InvalidBranchException(name)
@@ -136,7 +139,7 @@ class WorktreeService(
 	 * for the main worktree.
 	 */
 	fun remove(projectId: Long, worktreeId: Long, force: Boolean) {
-		val (checkout, found) = locate(projectId, worktreeId)
+		val (checkout, found) = locate(projectId, worktreeId, active = true)
 		val worktree = found!!
 		if (worktree.main) throw MainWorktreeException()
 		locks.withLock(checkout.id!!) {
@@ -173,7 +176,7 @@ class WorktreeService(
 	 * [WorktreeMissingException], [PushRejectedException], and [GitRemoteException] for other remote failures.
 	 */
 	fun push(projectId: Long, worktreeId: Long, force: Boolean): PushResult {
-		val (checkout, found) = locate(projectId, worktreeId)
+		val (checkout, found) = locate(projectId, worktreeId, active = true)
 		val worktree = found!!
 		val branch = worktree.branch
 		if (branch == checkout.defaultBranch) throw PushDefaultBranchException(branch)

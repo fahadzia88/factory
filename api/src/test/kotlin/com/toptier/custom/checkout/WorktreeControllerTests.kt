@@ -6,6 +6,7 @@ import com.toptier.custom.checkout.domain.RepositoryWorktree
 import com.toptier.custom.checkout.exception.BaseNotFoundException
 import com.toptier.custom.checkout.exception.BranchCheckedOutException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
+import com.toptier.custom.checkout.exception.CheckoutProjectArchivedException
 import com.toptier.custom.checkout.exception.GitFailure
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
@@ -136,6 +137,18 @@ class WorktreeControllerTests {
 			jsonPath("$.unsaved.unpushedCommits[0].sha") { value("a1b2c3d") }
 			jsonPath("$.unsaved.unpushedCommits[0].subject") { value("WIP") }
 		}
+	}
+
+	@Test
+	fun `an archived project's worktrees can't be added, removed or pushed`() {
+		given(worktreeService.add(12, "feat/x", null)).willThrow(CheckoutProjectArchivedException(12))
+		willThrow(CheckoutProjectArchivedException(12)).given(worktreeService).remove(12, 8, false)
+		given(worktreeService.push(12, 8, false)).willThrow(CheckoutProjectArchivedException(12))
+
+		mockMvc.post(BASE) { auth(); json("""{"branch":"feat/x"}""") }
+			.andExpect { problem(409, "project_archived", "This project is archived. Restore it to use its repository checkout.") }
+		mockMvc.delete("$BASE/8") { auth() }.andExpect { problem(409, "project_archived") }
+		mockMvc.post("$BASE/8/push") { auth(); json("{}") }.andExpect { problem(409, "project_archived") }
 	}
 
 	@Test
