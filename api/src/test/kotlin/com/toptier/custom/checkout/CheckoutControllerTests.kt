@@ -2,12 +2,14 @@ package com.toptier.custom.checkout
 
 import com.toptier.custom.checkout.controller.CheckoutController
 import com.toptier.custom.checkout.controller.CheckoutExceptionHandler
+import com.toptier.custom.checkout.controller.CheckoutLookupController
 import com.toptier.custom.checkout.domain.CheckoutState
 import com.toptier.custom.checkout.domain.RepositoryCheckout
 import com.toptier.custom.checkout.domain.RepositoryWorktree
 import com.toptier.custom.checkout.exception.CheckoutExistsException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
 import com.toptier.custom.checkout.exception.CheckoutNotReadyException
+import com.toptier.custom.checkout.exception.CheckoutProjectArchivedException
 import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitFailure
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
@@ -15,6 +17,8 @@ import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.service.CheckoutService
 import com.toptier.custom.checkout.service.CheckoutView
+import com.toptier.custom.checkout.service.HeadCommit
+import com.toptier.custom.checkout.service.UnsavedWork
 import com.toptier.custom.checkout.service.WorktreeView
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.security.config.SecurityConfig
@@ -38,7 +42,7 @@ import org.springframework.test.web.servlet.post
 import java.time.Duration
 import java.time.Instant
 
-@WebMvcTest(CheckoutController::class)
+@WebMvcTest(CheckoutController::class, CheckoutLookupController::class)
 @Import(SecurityConfig::class, CheckoutExceptionHandler::class)
 @EnableConfigurationProperties(SecurityProperties::class)
 @TestPropertySource(properties = ["app.security.api-token=test-token"])
@@ -55,6 +59,62 @@ class CheckoutControllerTests {
 		mockMvc.get("/api/projects/12/checkout").andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/12/checkout").andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/12/checkout/fetch").andExpect { status { isUnauthorized() } }
+		mockMvc.get("/api/projects/12/checkout/unsaved").andExpect { status { isUnauthorized() } }
+		mockMvc.get("/api/checkouts?repositoryUrl=https://github.com/acme/factory").andExpect { status { isUnauthorized() } }
+	}
+
+	@Test
+	fun `unsaved lists each worktree's work`() {
+		given(checkoutService.unsaved(12)).willReturn(
+			listOf(UnsavedWork(9, "feat/003-x/01-api-y", listOf("api/Foo.kt"), listOf(HeadCommit("a1b2c3d", "WIP")))),
+		)
+		given(checkoutService.unsaved(13)).willReturn(emptyList())
+		given(checkoutService.unsaved(99)).willThrow(ProjectNotFoundException(99))
+
+		mockMvc.get("/api/projects/12/checkout/unsaved") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.length()") { value(1) }
+			jsonPath("$[0].worktreeId") { value(9) }
+			jsonPath("$[0].branch") { value("feat/003-x/01-api-y") }
+			jsonPath("$[0].changedFiles[0]") { value("api/Foo.kt") }
+			jsonPath("$[0].unpushedCommits[0].sha") { value("a1b2c3d") }
+			jsonPath("$[0].unpushedCommits[0].subject") { value("WIP") }
+		}
+		mockMvc.get("/api/projects/13/checkout/unsaved") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.length()") { value(0) }
+		}
+		mockMvc.get("/api/projects/99/checkout/unsaved") { auth() }.andExpect { problem(404, "project_not_found") }
+	}
+
+	@Test
+	fun `an archived project's checkout can't be started or fetched`() {
+		given(checkoutService.start(12)).willThrow(CheckoutProjectArchivedException(12))
+		given(checkoutService.fetch(12)).willThrow(CheckoutProjectArchivedException(12))
+
+		mockMvc.post("/api/projects/12/checkout") { auth() }
+			.andExpect { problem(409, "project_archived", "This project is archived. Restore it to use its repository checkout.") }
+		mockMvc.post("/api/projects/12/checkout/fetch") { auth() }.andExpect { problem(409, "project_archived") }
+	}
+
+	@Test
+	fun `the lookup finds a checkout by its exact repository URL`() {
+		val url = "https://github.com/acme/factory"
+		given(checkoutService.findByRepositoryUrl(url)).willReturn(CheckoutView(checkout(CheckoutState.READY), emptyList()))
+		given(checkoutService.findByRepositoryUrl("https://github.com/acme/none")).willThrow(ProjectNotFoundException(-1))
+		given(checkoutService.findByRepositoryUrl("https://github.com/acme/new")).willThrow(CheckoutNotFoundException())
+
+		mockMvc.get("/api/checkouts") { auth(); param("repositoryUrl", url) }.andExpect {
+			status { isOk() }
+			jsonPath("$.id") { value(3) }
+			jsonPath("$.projectId") { value(12) }
+			jsonPath("$.state") { value("ready") }
+		}
+		mockMvc.get("/api/checkouts") { auth(); param("repositoryUrl", "https://github.com/acme/none") }
+			.andExpect { problem(404, "project_not_found", "Project not found.") }
+		mockMvc.get("/api/checkouts") { auth(); param("repositoryUrl", "https://github.com/acme/new") }
+			.andExpect { problem(404, "checkout_not_found") }
+		mockMvc.get("/api/checkouts") { auth() }.andExpect { problem(400, "invalid_request") }
 	}
 
 	@Test

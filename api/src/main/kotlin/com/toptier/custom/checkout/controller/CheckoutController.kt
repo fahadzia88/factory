@@ -1,6 +1,7 @@
 package com.toptier.custom.checkout.controller
 
 import com.toptier.custom.checkout.dto.CheckoutResponse
+import com.toptier.custom.checkout.dto.UnsavedWorkResponse
 import com.toptier.custom.checkout.service.CheckoutService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -27,4 +28,9 @@ class CheckoutController(private val checkoutService: CheckoutService) {
 	/** Fetches the ready checkout, fast-forwards a clean main worktree and returns the checkout. */
 	@PostMapping("/fetch")
 	fun fetch(@PathVariable id: Long): CheckoutResponse = CheckoutResponse.from(checkoutService.fetch(id))
+
+	/** The worktrees, main first, with changes or commits that aren't on GitHub; `[]` when there's no checkout. */
+	@GetMapping("/unsaved")
+	fun unsaved(@PathVariable id: Long): List<UnsavedWorkResponse> =
+		checkoutService.unsaved(id).map(UnsavedWorkResponse::from)
 }

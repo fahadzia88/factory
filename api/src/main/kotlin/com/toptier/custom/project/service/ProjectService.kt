@@ -12,6 +12,7 @@ import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.project.exception.ProjectValidationException
 import com.toptier.custom.project.exception.RepositoryNotFoundException
 import jakarta.persistence.criteria.Predicate
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -40,6 +41,7 @@ class ProjectService(
 	private val repository: ProjectRepository,
 	private val checker: GitHubRepositoryChecker,
 	private val clock: Clock,
+	private val events: ApplicationEventPublisher,
 ) {
 
 	/** The project with this id, archived or not. */
@@ -116,8 +118,15 @@ class ProjectService(
 		return save(project)
 	}
 
-	/** Hides a project from the default list and makes it read-only; its status is kept. */
-	fun archive(id: Long): Project = setArchived(id, archived = true)
+	/**
+	 * Hides a project from the default list and makes it read-only; its status is kept. Publishes a
+	 * [ProjectArchivedEvent] every time, so a repeat archive also retries a cleanup that failed.
+	 */
+	fun archive(id: Long): Project {
+		val project = setArchived(id, archived = true)
+		events.publishEvent(ProjectArchivedEvent(id))
+		return project
+	}
 
 	/** Makes an archived project editable and listed again, with the status it had. */
 	fun restore(id: Long): Project = setArchived(id, archived = false)
