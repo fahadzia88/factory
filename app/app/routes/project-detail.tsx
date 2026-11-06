@@ -22,6 +22,7 @@ import {
   ProjectStatusBadge,
   UnverifiedBadge,
 } from "~/components/projects/project-status-badge"
+import { PullRequestsCard } from "~/components/pull-requests/pull-request-list"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
@@ -177,6 +178,10 @@ export default function ProjectDetail({
       )}
 
       <ProjectDetails project={project} />
+      <PullRequestsCard
+        projectId={project.id}
+        repositoryUrl={project.repositoryUrl}
+      />
       <CheckoutCard projectId={project.id} archived={project.archived} />
     </>
   )

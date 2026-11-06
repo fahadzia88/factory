@@ -19,12 +19,15 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty"
 
+/** Projects › [project ›] page. Pass `project` for pages below a project. */
 export function ProjectBreadcrumb({
   name,
   page,
+  project,
 }: {
   name: string
   page?: string
+  project?: { id: number; name: string }
 }) {
   return (
     <Breadcrumb>
@@ -35,6 +38,19 @@ export function ProjectBreadcrumb({
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
+        {project && (
+          <>
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbLink
+                className="truncate"
+                render={<Link to={`/projects/${project.id}`} />}
+              >
+                {project.name}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </>
+        )}
         <BreadcrumbItem className="min-w-0">
           <BreadcrumbPage className="truncate">{page ?? name}</BreadcrumbPage>
         </BreadcrumbItem>
