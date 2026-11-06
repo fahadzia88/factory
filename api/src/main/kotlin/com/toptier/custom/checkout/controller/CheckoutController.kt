@@ -23,4 +23,8 @@ class CheckoutController(private val checkoutService: CheckoutService) {
 	@PostMapping
 	fun start(@PathVariable id: Long): ResponseEntity<CheckoutResponse> =
 		ResponseEntity.status(HttpStatus.ACCEPTED).body(CheckoutResponse.from(checkoutService.start(id)))
+
+	/** Fetches the ready checkout, fast-forwards a clean main worktree and returns the checkout. */
+	@PostMapping("/fetch")
+	fun fetch(@PathVariable id: Long): CheckoutResponse = CheckoutResponse.from(checkoutService.fetch(id))
 }

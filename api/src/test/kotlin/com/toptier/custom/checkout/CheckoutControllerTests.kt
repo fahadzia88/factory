@@ -7,6 +7,7 @@ import com.toptier.custom.checkout.domain.RepositoryCheckout
 import com.toptier.custom.checkout.domain.RepositoryWorktree
 import com.toptier.custom.checkout.exception.CheckoutExistsException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
+import com.toptier.custom.checkout.exception.CheckoutNotReadyException
 import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitFailure
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
@@ -53,6 +54,7 @@ class CheckoutControllerTests {
 	fun `rejects requests without a token`() {
 		mockMvc.get("/api/projects/12/checkout").andExpect { status { isUnauthorized() } }
 		mockMvc.post("/api/projects/12/checkout").andExpect { status { isUnauthorized() } }
+		mockMvc.post("/api/projects/12/checkout/fetch").andExpect { status { isUnauthorized() } }
 	}
 
 	@Test
@@ -145,6 +147,54 @@ class CheckoutControllerTests {
 			problem(500, "git_error", "A git command failed on the server.")
 			content { string(not(containsString("secret stderr"))) }
 		}
+	}
+
+	@Test
+	fun `fetch answers 200 with the checkout`() {
+		val checkout = checkout(CheckoutState.READY).apply {
+			defaultBranch = "main"
+			lastFetchedAt = FETCHED
+		}
+		val main = worktree(7, "main", "/repos/12", main = true, baseBranch = null)
+		given(checkoutService.fetch(12)).willReturn(CheckoutView(checkout, listOf(WorktreeView(main, false, null))))
+
+		mockMvc.post("/api/projects/12/checkout/fetch") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.id") { value(3) }
+			jsonPath("$.state") { value("ready") }
+			jsonPath("$.defaultBranch") { value("main") }
+			jsonPath("$.lastFetchedAt") { value("2026-11-05T10:15:00Z") }
+			jsonPath("$.worktrees.length()") { value(1) }
+			jsonPath("$.worktrees[0].main") { value(true) }
+		}
+	}
+
+	@Test
+	fun `fetch errors map to their codes`() {
+		given(checkoutService.fetch(11)).willThrow(CheckoutNotReadyException())
+		given(checkoutService.fetch(12)).willThrow(CheckoutNotFoundException())
+		given(checkoutService.fetch(13)).willThrow(GitRemoteException(GitFailure.AUTH))
+		given(checkoutService.fetch(14)).willThrow(GitRemoteException(GitFailure.UNREACHABLE))
+		given(checkoutService.fetch(15)).willThrow(GitTimeoutException(Duration.ofMinutes(2)))
+		given(checkoutService.fetch(16)).willThrow(GitNotConfiguredException())
+
+		mockMvc.post("/api/projects/11/checkout/fetch") { auth() }
+			.andExpect { problem(409, "checkout_not_ready", "The checkout isn't ready yet.") }
+		mockMvc.post("/api/projects/12/checkout/fetch") { auth() }
+			.andExpect { problem(404, "checkout_not_found", "This project has no repository checkout.") }
+		mockMvc.post("/api/projects/13/checkout/fetch") { auth() }.andExpect {
+			problem(
+				502, "git_remote_error",
+				"GitHub rejected the git token. Check that API_GIT_TOKEN has Contents: read and write on this repository.",
+			)
+		}
+		mockMvc.post("/api/projects/14/checkout/fetch") { auth() }
+			.andExpect { problem(502, "git_remote_error", "GitHub couldn't be reached. Try again.") }
+		mockMvc.post("/api/projects/15/checkout/fetch") { auth() }
+			.andExpect { problem(504, "git_timeout", "GitHub didn't answer within 2 minutes. Try again.") }
+		mockMvc.post("/api/projects/16/checkout/fetch") { auth() }
+			.andExpect { problem(503, "git_not_configured", "The API has no git token configured. Set API_GIT_TOKEN in the root .env.") }
+		mockMvc.post("/api/projects/abc/checkout/fetch") { auth() }.andExpect { problem(400, "invalid_request") }
 	}
 
 	private fun MockMvcResultMatchersDsl.problem(status: Int, code: String, detail: String? = null) {
