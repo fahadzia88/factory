@@ -1,5 +1,8 @@
 package com.toptier.custom.checkout.controller
 
+import com.toptier.custom.checkout.dto.UnsavedWorkResponse
+import com.toptier.custom.checkout.exception.BaseNotFoundException
+import com.toptier.custom.checkout.exception.BranchCheckedOutException
 import com.toptier.custom.checkout.exception.CheckoutExistsException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
 import com.toptier.custom.checkout.exception.CheckoutNotReadyException
@@ -7,6 +10,10 @@ import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
+import com.toptier.custom.checkout.exception.InvalidBranchException
+import com.toptier.custom.checkout.exception.MainWorktreeException
+import com.toptier.custom.checkout.exception.WorktreeNotFoundException
+import com.toptier.custom.checkout.exception.WorktreeUnsavedException
 import com.toptier.custom.checkout.exception.describe
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import org.slf4j.LoggerFactory
@@ -43,6 +50,32 @@ class CheckoutExceptionHandler {
 	@ExceptionHandler(CheckoutNotReadyException::class)
 	fun handleCheckoutNotReady(ex: CheckoutNotReadyException): ProblemDetail =
 		problem(HttpStatus.CONFLICT, "checkout_not_ready", ex.message!!)
+
+	@ExceptionHandler(InvalidBranchException::class)
+	fun handleInvalidBranch(ex: InvalidBranchException): ProblemDetail =
+		problem(HttpStatus.BAD_REQUEST, "invalid_branch", ex.message!!)
+
+	@ExceptionHandler(BaseNotFoundException::class)
+	fun handleBaseNotFound(ex: BaseNotFoundException): ProblemDetail =
+		problem(HttpStatus.BAD_REQUEST, "base_not_found", ex.message!!)
+
+	@ExceptionHandler(BranchCheckedOutException::class)
+	fun handleBranchCheckedOut(ex: BranchCheckedOutException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "branch_checked_out", ex.message!!)
+
+	@ExceptionHandler(WorktreeNotFoundException::class)
+	fun handleWorktreeNotFound(ex: WorktreeNotFoundException): ProblemDetail =
+		problem(HttpStatus.NOT_FOUND, "worktree_not_found", ex.message!!)
+
+	@ExceptionHandler(MainWorktreeException::class)
+	fun handleMainWorktree(ex: MainWorktreeException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "main_worktree", ex.message!!)
+
+	/** The problem carries the work that would be lost as `unsaved`. */
+	@ExceptionHandler(WorktreeUnsavedException::class)
+	fun handleWorktreeUnsaved(ex: WorktreeUnsavedException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "worktree_unsaved", ex.message!!)
+			.apply { setProperty("unsaved", UnsavedWorkResponse.from(ex.unsaved)) }
 
 	@ExceptionHandler(GitRemoteException::class)
 	fun handleGitRemote(ex: GitRemoteException): ProblemDetail {

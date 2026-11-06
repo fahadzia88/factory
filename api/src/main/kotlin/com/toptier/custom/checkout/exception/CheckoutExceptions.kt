@@ -1,5 +1,7 @@
 package com.toptier.custom.checkout.exception
 
+import com.toptier.custom.checkout.service.UnsavedWork
+
 /** A checkout request that can't be carried out; the message is the response's `detail`. */
 sealed class CheckoutException(message: String) : RuntimeException(message)
 
@@ -24,3 +26,32 @@ class GitRemoteException(val failure: GitFailure) : CheckoutException(message(fa
 		}
 	}
 }
+
+/** [name] isn't a valid git branch name. */
+class InvalidBranchException(name: String?) : CheckoutException("\"${name ?: ""}\" isn't a valid branch name.")
+
+/** The base for a new branch isn't on origin or in the checkout. */
+class BaseNotFoundException(base: String) :
+	CheckoutException("Base branch $base doesn't exist on GitHub or in the checkout.")
+
+/** The branch already has a worktree (the main one included), or its folder is taken by another branch. */
+class BranchCheckedOutException(message: String) : CheckoutException(message) {
+	companion object {
+		/** The branch itself is in a worktree. */
+		fun of(branch: String) = BranchCheckedOutException("$branch is already checked out in a worktree.")
+
+		/** Another branch's worktree has the folder [branch] maps to. */
+		fun folder(branch: String, folder: String) =
+			BranchCheckedOutException("$branch would use the folder $folder, which another worktree has.")
+	}
+}
+
+/** No worktree with that id in the project's checkout. */
+class WorktreeNotFoundException : CheckoutException("Worktree not found.")
+
+/** The main worktree is the clone itself and can't be removed. */
+class MainWorktreeException : CheckoutException("The main worktree can't be removed.")
+
+/** Removing the worktree would lose [unsaved] work; removing with force discards it. */
+class WorktreeUnsavedException(val unsaved: UnsavedWork) :
+	CheckoutException("This worktree has changes that aren't on GitHub. Remove it with force to discard them.")
