@@ -6,13 +6,19 @@ import com.toptier.custom.checkout.domain.RepositoryWorktree
 import com.toptier.custom.checkout.exception.BaseNotFoundException
 import com.toptier.custom.checkout.exception.BranchCheckedOutException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
+import com.toptier.custom.checkout.exception.GitFailure
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
+import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.InvalidBranchException
 import com.toptier.custom.checkout.exception.MainWorktreeException
+import com.toptier.custom.checkout.exception.PushDefaultBranchException
+import com.toptier.custom.checkout.exception.PushRejectedException
+import com.toptier.custom.checkout.exception.WorktreeMissingException
 import com.toptier.custom.checkout.exception.WorktreeNotFoundException
 import com.toptier.custom.checkout.exception.WorktreeUnsavedException
 import com.toptier.custom.checkout.service.HeadCommit
+import com.toptier.custom.checkout.service.PushResult
 import com.toptier.custom.checkout.service.UnsavedWork
 import com.toptier.custom.checkout.service.WorktreeService
 import com.toptier.custom.checkout.service.WorktreeView
@@ -22,6 +28,7 @@ import com.toptier.custom.security.config.SecurityProperties
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.willThrow
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -54,6 +61,7 @@ class WorktreeControllerTests {
 	fun `rejects requests without a token`() {
 		mockMvc.post(BASE) { json("""{"branch":"feat/x"}""") }.andExpect { status { isUnauthorized() } }
 		mockMvc.delete("$BASE/8").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/8/push") { json("{}") }.andExpect { status { isUnauthorized() } }
 	}
 
 	@Test
@@ -153,6 +161,71 @@ class WorktreeControllerTests {
 		mockMvc.delete("$BASE/abc") { auth() }.andExpect { problem(400, "invalid_request") }
 		mockMvc.post("/api/projects/abc/checkout/worktrees") { auth(); json("""{"branch":"feat/x"}""") }
 			.andExpect { problem(400, "invalid_request") }
+	}
+
+	@Test
+	fun `push answers 200 and passes force, defaulting to false`() {
+		given(worktreeService.push(12, 8, true)).willReturn(PushResult("feat/x", "a1b2c3d"))
+		given(worktreeService.push(12, 8, false)).willReturn(PushResult("feat/x", "b2c3d4e"))
+
+		mockMvc.post("$BASE/8/push") { auth(); json("""{"force":true}""") }.andExpect {
+			status { isOk() }
+			jsonPath("$.branch") { value("feat/x") }
+			jsonPath("$.head") { value("a1b2c3d") }
+		}
+		mockMvc.post("$BASE/8/push") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.head") { value("b2c3d4e") }
+		}
+		mockMvc.post("$BASE/8/push") { auth(); json("{}") }.andExpect {
+			status { isOk() }
+			jsonPath("$.head") { value("b2c3d4e") }
+		}
+		mockMvc.post("$BASE/8/push") { auth(); json("""{"force":false}""") }.andExpect { status { isOk() } }
+		verify(worktreeService).push(12, 8, true)
+		verify(worktreeService, times(3)).push(12, 8, false)
+	}
+
+	@Test
+	fun `push refusals map to 409`() {
+		given(worktreeService.push(12, 7, false)).willThrow(PushDefaultBranchException("main"))
+		given(worktreeService.push(12, 8, false)).willThrow(PushRejectedException(lease = false))
+		given(worktreeService.push(12, 8, true)).willThrow(PushRejectedException(lease = true))
+		given(worktreeService.push(12, 9, false)).willThrow(WorktreeMissingException("feat/gone"))
+		given(worktreeService.push(12, 404, false)).willThrow(WorktreeNotFoundException())
+
+		mockMvc.post("$BASE/7/push") { auth() }.andExpect {
+			problem(409, "push_default_branch", "main is the repository's default branch and can't be pushed from here.")
+		}
+		mockMvc.post("$BASE/8/push") { auth() }.andExpect {
+			problem(
+				409, "push_rejected",
+				"GitHub rejected the push: the branch on GitHub has commits this worktree doesn't. Push with force to replace them.",
+			)
+		}
+		mockMvc.post("$BASE/8/push") { auth(); json("""{"force":true}""") }.andExpect {
+			problem(
+				409, "push_rejected",
+				"The branch on GitHub changed since the last fetch, so the forced push was refused. Fetch and check it first.",
+			)
+		}
+		mockMvc.post("$BASE/9/push") { auth() }.andExpect {
+			problem(409, "worktree_missing", "The worktree's folder is missing. Remove it and add it again.")
+		}
+		mockMvc.post("$BASE/404/push") { auth() }.andExpect { problem(404, "worktree_not_found") }
+		mockMvc.post("$BASE/abc/push") { auth() }.andExpect { problem(400, "invalid_request") }
+		mockMvc.post("$BASE/8/push") { auth(); json("{not json") }.andExpect { problem(400, "invalid_request") }
+	}
+
+	@Test
+	fun `push git failures map to 502, 503 and 504`() {
+		given(worktreeService.push(12, 1, false)).willThrow(GitRemoteException(GitFailure.AUTH))
+		given(worktreeService.push(12, 2, false)).willThrow(GitNotConfiguredException())
+		given(worktreeService.push(12, 3, false)).willThrow(GitTimeoutException(Duration.ofMinutes(2)))
+
+		mockMvc.post("$BASE/1/push") { auth() }.andExpect { problem(502, "git_remote_error") }
+		mockMvc.post("$BASE/2/push") { auth() }.andExpect { problem(503, "git_not_configured") }
+		mockMvc.post("$BASE/3/push") { auth() }.andExpect { problem(504, "git_timeout") }
 	}
 
 	private fun MockMvcResultMatchersDsl.problem(status: Int, code: String, detail: String? = null) {
