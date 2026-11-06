@@ -1,6 +1,6 @@
 ---
 feature: 003-repository-checkouts
-status: approved
+status: in-progress
 approved: 2026-11-05
 ---
 
@@ -246,6 +246,8 @@ to keep one stack, though it only needs 07.
 
 ## Progress
 
+Docs PR: [#23](https://github.com/fahadzia88/factory/pull/23), the base of the stack. Merge bottom-up.
+
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
 | 01 | [spec](tasks/01-infra-repos-volume/spec.md) | | not started |
@@ -268,3 +270,4 @@ to keep one stack, though it only needs 07.
 - 2026-11-05 — Back to draft: contract gaps filled (extra 404s, `invalid_request`, `git_error`, local branch first, `__` collision); api 03 and 04 split into 03–06 (12 tasks); 11 ports `repo.ts` only, the subagents stay unwired.
 - 2026-11-05 — Approved again.
 - 2026-11-05 — Task specs written and approved.
+- 2026-11-05 — Docs PR #23 open; in progress.
