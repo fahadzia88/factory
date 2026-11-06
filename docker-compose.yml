@@ -74,9 +74,6 @@ services:
       # Same volume as api, at the same path (worktrees hold absolute paths). The api runs network
       # git and adds/removes worktrees; the agent's workflow tools work inside them.
       - repos:/repos
-      # The agent's own clone of the GitHub repo and its worktrees (agent/agent/lib/repo.ts).
-      # Never the host checkout, so branch switches can't touch your files or reload the agent.
-      - agent_git:/git
     environment:
       HOST: 0.0.0.0
       PORT: 3000
@@ -87,8 +84,9 @@ services:
       # Alternative to ANTHROPIC_API_KEY: a Claude subscription token from `claude setup-token` (sk-ant-oat01-…).
       # The SDK prefers ANTHROPIC_API_KEY when both are set, so leave that one empty to use this.
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
-      # Feature-workflow subagents: push branches over HTTPS and open/comment on PRs (no gh CLI).
-      # Fine-grained token for this repo only: Contents + Pull requests, read and write.
+      # Feature-workflow subagents: the pull request REST API only (open, list, comment, retarget;
+      # no gh CLI). Git doesn't use it: fetch and push go through the API's checkout routes.
+      # Fine-grained token for this repo only: Pull requests read and write.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       GITHUB_REPO: ${GITHUB_REPO:-fahadzia88/factory}
       GIT_USER_NAME: ${GIT_USER_NAME:-factory agent}
@@ -123,6 +121,5 @@ volumes:
   mysql_data:
   app_npx:
   agent_npx:
-  agent_git:
   agent_node_modules:
   repos:
