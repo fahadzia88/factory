@@ -256,7 +256,7 @@ Docs PR: [#23](https://github.com/fahadzia88/factory/pull/23), the base of the s
 | 04 | [spec](tasks/04-api-checkout-fetch/spec.md) | [#27](https://github.com/fahadzia88/factory/pull/27) | pr open |
 | 05 | [spec](tasks/05-api-worktrees/spec.md) | [#28](https://github.com/fahadzia88/factory/pull/28) | pr open |
 | 06 | [spec](tasks/06-api-worktree-push/spec.md) | [#29](https://github.com/fahadzia88/factory/pull/29) | pr open |
-| 07 | [spec](tasks/07-api-archive-lookup/spec.md) | | not started |
+| 07 | [spec](tasks/07-api-archive-lookup/spec.md) | [#30](https://github.com/fahadzia88/factory/pull/30) | pr open |
 | 08 | [spec](tasks/08-app-archive-warning/spec.md) | | not started |
 | 09 | [spec](tasks/09-app-checkout-card/spec.md) | | not started |
 | 10 | [spec](tasks/10-app-worktree-actions/spec.md) | | not started |
