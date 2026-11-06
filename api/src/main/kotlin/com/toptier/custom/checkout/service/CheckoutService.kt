@@ -6,12 +6,15 @@ import com.toptier.custom.checkout.domain.RepositoryCheckout
 import com.toptier.custom.checkout.domain.RepositoryCheckoutRepository
 import com.toptier.custom.checkout.domain.RepositoryWorktree
 import com.toptier.custom.checkout.domain.RepositoryWorktreeRepository
+import com.toptier.custom.checkout.exception.CheckoutException
 import com.toptier.custom.checkout.exception.CheckoutExistsException
 import com.toptier.custom.checkout.exception.CheckoutNotFoundException
+import com.toptier.custom.checkout.exception.CheckoutNotReadyException
 import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitException
 import com.toptier.custom.checkout.exception.GitFailure
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
+import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.describe
 import com.toptier.custom.project.service.ProjectService
@@ -22,6 +25,7 @@ import org.springframework.context.event.EventListener
 import org.springframework.core.task.TaskExecutor
 import org.springframework.core.task.TaskRejectedException
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -172,6 +176,60 @@ class CheckoutService(
 		}
 	}
 
+	/**
+	 * Fetches the project's ready checkout and fast-forwards a clean main worktree. Throws
+	 * `ProjectNotFoundException`, [CheckoutNotFoundException], [CheckoutNotReadyException],
+	 * [GitNotConfiguredException], [GitRemoteException] or [GitTimeoutException].
+	 */
+	fun fetch(projectId: Long): CheckoutView {
+		projects.get(projectId)
+		val checkout = checkouts.findByProjectId(projectId) ?: throw CheckoutNotFoundException()
+		if (checkout.state != CheckoutState.READY) throw CheckoutNotReadyException()
+		runner.requireToken()
+		locks.withLock(checkout.id!!) { fetchUnderLock(checkout) }
+		return view(checkout)
+	}
+
+	/**
+	 * `git fetch --prune origin`, then a fast-forward of the main worktree to `origin/<default>`
+	 * when it has no changes, and records `lastFetchedAt`. Other worktrees are never touched. The
+	 * caller must hold the checkout's lock.
+	 */
+	fun fetchUnderLock(checkout: RepositoryCheckout) {
+		val dir = Path.of(checkout.path)
+		remote { runner.runOrThrow(dir, listOf("fetch", "--prune", "origin"), network = true) }
+		val status = runner.run(dir, listOf("status", "--porcelain"))
+		if (status.exitCode == 0 && status.stdout.isBlank()) {
+			val merge = runner.run(dir, listOf("merge", "--ff-only", "origin/${checkout.defaultBranch}"))
+			if (merge.exitCode != 0) {
+				log.info("Checkout {}: main can't fast-forward to origin/{}, left as is", checkout.id, checkout.defaultBranch)
+			}
+		}
+		checkout.lastFetchedAt = clock.instant()
+		checkouts.saveAndFlush(checkout)
+	}
+
+	/**
+	 * Fetches every ready checkout every `app.git.fetch-interval` (only when scheduling is on). A
+	 * failure is logged and leaves that checkout's state and `lastFetchedAt` as they were.
+	 */
+	@Scheduled(fixedDelayString = "\${app.git.fetch-interval:15m}", initialDelayString = "\${app.git.fetch-interval:15m}")
+	fun fetchAll() {
+		if (props.token.isBlank()) {
+			log.debug("Scheduled fetch skipped: no git token configured")
+			return
+		}
+		checkouts.findAllByState(CheckoutState.READY).forEach {
+			try {
+				locks.withLock(it.id!!) { fetchUnderLock(it) }
+			} catch (ex: GitException) {
+				log.warn("Scheduled fetch of checkout {} (project {}) failed: {}", it.id, it.projectId, ex.message)
+			} catch (ex: CheckoutException) {
+				log.warn("Scheduled fetch of checkout {} (project {}) failed: {}", it.id, it.projectId, ex.message)
+			}
+		}
+	}
+
 	/** On startup, fails the clones a restart interrupted; a Retry cleans up their folders. */
 	@EventListener(ApplicationReadyEvent::class)
 	fun failInterruptedClones() {
@@ -201,6 +259,13 @@ class CheckoutService(
 		}
 		is GitNotConfiguredException -> ex.message!!
 		else -> "The clone failed unexpectedly."
+	}
+
+	/** Runs a network git call, turning a non-zero exit into [GitRemoteException]; timeouts and a missing token pass through. */
+	private fun <T> remote(block: () -> T): T = try {
+		block()
+	} catch (ex: GitCommandException) {
+		throw GitRemoteException(ex.failure)
 	}
 
 	private fun deleteFolders(vararg folders: Path) {
