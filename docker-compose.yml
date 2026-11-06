@@ -13,6 +13,8 @@ services:
       # Reuse the host's Gradle dependency + wrapper caches
       - ~/.gradle/caches:/home/gradle/.gradle/caches
       - ~/.gradle/wrapper:/home/gradle/.gradle/wrapper
+      # Project repository checkouts and their worktrees (checkout package); also mounted in agent
+      - repos:/repos
     environment:
       GRADLE_USER_HOME: /home/gradle/.gradle
       DB_HOST: factory-mysql
@@ -25,6 +27,11 @@ services:
       # Read-only GitHub token (Metadata: read) for checking project repositories exist; blank skips the check.
       # Separate from the root .env's GITHUB_TOKEN, which can write.
       GITHUB_TOKEN: ${API_GITHUB_TOKEN:-}
+      # Git token for cloning, fetching and pushing project repositories (checkout package).
+      # Fine-grained, Contents: read and write on the project repositories. Separate from the
+      # read-only API_GITHUB_TOKEN above. Sent per git command as a header, never written to disk.
+      # Blank: checkout, fetch and push answer 503 git_not_configured.
+      GIT_TOKEN: ${API_GIT_TOKEN:-}
     ports:
       - "8080:8080"
     depends_on:
@@ -64,6 +71,9 @@ services:
       - agent_node_modules:/workspace/node_modules
       - ~/.npm:/root/.npm
       - agent_npx:/root/.npm/_npx
+      # Same volume as api, at the same path (worktrees hold absolute paths). The api runs network
+      # git and adds/removes worktrees; the agent's workflow tools work inside them.
+      - repos:/repos
       # The agent's own clone of the GitHub repo and its worktrees (agent/agent/lib/repo.ts).
       # Never the host checkout, so branch switches can't touch your files or reload the agent.
       - agent_git:/git
@@ -115,3 +125,4 @@ volumes:
   agent_npx:
   agent_git:
   agent_node_modules:
+  repos:
