@@ -17,6 +17,7 @@ import com.toptier.custom.checkout.service.CheckoutLocks
 import com.toptier.custom.checkout.service.CheckoutPaths
 import com.toptier.custom.checkout.service.CheckoutService
 import com.toptier.custom.checkout.service.GitRunner
+import com.toptier.custom.checkout.service.WorktreeInspector
 import com.toptier.custom.github.service.GitHubRepositoryChecker
 import com.toptier.custom.project.domain.Project
 import com.toptier.custom.project.domain.ProjectRepository
@@ -46,7 +47,7 @@ import kotlin.test.assertTrue
 
 @DataJpaTest
 @Import(
-	CheckoutService::class, ProjectService::class, CheckoutLocks::class, GitRunner::class, CheckoutPaths::class,
+	CheckoutService::class, ProjectService::class, CheckoutLocks::class, GitRunner::class, CheckoutPaths::class, WorktreeInspector::class,
 	CheckoutTestConfig::class,
 )
 class CheckoutServiceTests {

@@ -41,6 +41,17 @@ data class HeadCommit(val sha: String, val subject: String)
 /** A worktree with what's read from disk: whether its folder is [missing], and its [head]. */
 data class WorktreeView(val worktree: RepositoryWorktree, val missing: Boolean, val head: HeadCommit?)
 
+/** A worktree's work that isn't on GitHub: changed or untracked files, and commits on no `origin` branch. */
+data class UnsavedWork(
+	val worktreeId: Long,
+	val branch: String,
+	val changedFiles: List<String>,
+	val unpushedCommits: List<HeadCommit>,
+) {
+	/** True when there is nothing to lose. */
+	fun isEmpty() = changedFiles.isEmpty() && unpushedCommits.isEmpty()
+}
+
 /** A checkout with its worktrees, main first; empty unless the checkout is ready. */
 data class CheckoutView(val checkout: RepositoryCheckout, val worktrees: List<WorktreeView>)
 
@@ -58,6 +69,7 @@ class CheckoutService(
 	private val paths: CheckoutPaths,
 	private val props: GitProperties,
 	private val locks: CheckoutLocks,
+	private val inspector: WorktreeInspector,
 	@Qualifier("checkoutExecutor") private val executor: TaskExecutor,
 	transactionManager: PlatformTransactionManager,
 	private val clock: Clock,
@@ -237,10 +249,13 @@ class CheckoutService(
 		if (count > 0) log.info("Marked {} interrupted clone(s) failed", count)
 	}
 
-	/** The checkout with its worktrees, loaded only when it's ready. */
+	/** The checkout with its worktrees, loaded only when it's ready; each worktree's `missing` and `head` are read from disk. */
 	fun view(checkout: RepositoryCheckout): CheckoutView {
 		val list = if (checkout.state == CheckoutState.READY) {
-			worktrees.findByCheckoutIdOrderByMainDescCreatedAtAscIdAsc(checkout.id!!).map { WorktreeView(it, false, null) }
+			worktrees.findByCheckoutIdOrderByMainDescCreatedAtAscIdAsc(checkout.id!!).map {
+				val path = Path.of(it.path)
+				WorktreeView(it, inspector.missing(path), inspector.head(path))
+			}
 		} else {
 			emptyList()
 		}
