@@ -42,6 +42,13 @@ object GitFixtures {
 		return git(dir, "rev-parse", "--short", "HEAD")
 	}
 
+	/** A fresh clone of [remote] in a new temp folder under [parent], for pushing to the remote as another user would. */
+	fun scratchClone(parent: Path, remote: Path): Path {
+		val scratch = Files.createTempDirectory(parent, "scratch")
+		git(scratch, "clone", fileUrl(remote), ".")
+		return scratch
+	}
+
 	/** The `file://` URL of [path]. */
 	fun fileUrl(path: Path) = "file://${path.toAbsolutePath()}"
 }
