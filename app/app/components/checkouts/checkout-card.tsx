@@ -7,7 +7,9 @@ import {
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { AddWorktreeForm } from "~/components/checkouts/add-worktree-form"
 import { useCheckout } from "~/components/checkouts/use-checkout"
+import { WorktreeActions } from "~/components/checkouts/worktree-actions"
 import { WorktreeList } from "~/components/checkouts/worktree-list"
 import { StatusBadge, type StatusTone } from "~/components/status-badge"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
@@ -27,6 +29,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty"
+import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import {
@@ -285,7 +288,26 @@ export function CheckoutCard({
             </dl>
             <div className="flex min-w-0 flex-col gap-1">
               <h3 className="text-sm font-medium">Worktrees</h3>
-              <WorktreeList worktrees={checkout.worktrees} />
+              <WorktreeList
+                worktrees={checkout.worktrees}
+                item={(worktree) => (
+                  <WorktreeActions
+                    projectId={projectId}
+                    worktree={worktree}
+                    defaultBranch={checkout.defaultBranch}
+                    onChanged={() => void reload()}
+                  />
+                )}
+              />
+            </div>
+            <Separator />
+            <div className="flex min-w-0 flex-col gap-3">
+              <h3 className="text-sm font-medium">Add worktree</h3>
+              <AddWorktreeForm
+                projectId={projectId}
+                defaultBranch={checkout.defaultBranch}
+                onAdded={() => void reload()}
+              />
             </div>
           </>
         )}
