@@ -1,10 +1,21 @@
 package com.toptier.custom.checkout.dto
 
 import com.toptier.custom.checkout.service.HeadCommit
+import com.toptier.custom.checkout.service.PushResult
 import com.toptier.custom.checkout.service.UnsavedWork
 
 /** Body of `POST …/checkout/worktrees`; [base] defaults to the checkout's default branch. */
 data class AddWorktreeRequest(val branch: String? = null, val base: String? = null)
+
+/** Body of `POST …/worktrees/{worktreeId}/push`; a missing body or [force] means a plain push. */
+data class PushRequest(val force: Boolean? = false)
+
+/** A pushed worktree: its branch and the short SHA of its head. */
+data class PushResponse(val branch: String, val head: String) {
+	companion object {
+		fun from(result: PushResult) = PushResponse(result.branch, result.head)
+	}
+}
 
 /** A worktree's work that isn't on GitHub. */
 data class UnsavedWorkResponse(

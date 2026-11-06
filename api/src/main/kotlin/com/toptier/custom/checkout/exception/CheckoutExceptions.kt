@@ -55,3 +55,20 @@ class MainWorktreeException : CheckoutException("The main worktree can't be remo
 /** Removing the worktree would lose [unsaved] work; removing with force discards it. */
 class WorktreeUnsavedException(val unsaved: UnsavedWork) :
 	CheckoutException("This worktree has changes that aren't on GitHub. Remove it with force to discard them.")
+
+/** [branch] is the repository's default branch, which is never pushed from the API. */
+class PushDefaultBranchException(branch: String) :
+	CheckoutException("$branch is the repository's default branch and can't be pushed from here.")
+
+/** GitHub refused the push: not a fast-forward, or, when [lease], the forced push's lease failed. */
+class PushRejectedException(val lease: Boolean) : CheckoutException(
+	if (lease) {
+		"The branch on GitHub changed since the last fetch, so the forced push was refused. Fetch and check it first."
+	} else {
+		"GitHub rejected the push: the branch on GitHub has commits this worktree doesn't. Push with force to replace them."
+	},
+)
+
+/** The worktree of [branch] has no folder on disk. */
+class WorktreeMissingException(val branch: String) :
+	CheckoutException("The worktree's folder is missing. Remove it and add it again.")

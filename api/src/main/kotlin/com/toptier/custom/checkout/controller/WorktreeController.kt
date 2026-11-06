@@ -1,6 +1,8 @@
 package com.toptier.custom.checkout.controller
 
 import com.toptier.custom.checkout.dto.AddWorktreeRequest
+import com.toptier.custom.checkout.dto.PushRequest
+import com.toptier.custom.checkout.dto.PushResponse
 import com.toptier.custom.checkout.dto.WorktreeResponse
 import com.toptier.custom.checkout.service.WorktreeService
 import org.springframework.http.HttpStatus
@@ -34,4 +36,12 @@ class WorktreeController(private val worktreeService: WorktreeService) {
 		worktreeService.remove(id, worktreeId, force == true)
 		return ResponseEntity.noContent().build()
 	}
+
+	/** Pushes the worktree's branch with its upstream set; `{"force": true}` pushes with a lease. */
+	@PostMapping("/{worktreeId}/push")
+	fun push(
+		@PathVariable id: Long,
+		@PathVariable worktreeId: Long,
+		@RequestBody(required = false) body: PushRequest?,
+	): PushResponse = PushResponse.from(worktreeService.push(id, worktreeId, body?.force == true))
 }
