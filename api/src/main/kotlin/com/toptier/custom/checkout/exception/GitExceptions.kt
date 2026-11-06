@@ -55,7 +55,7 @@ enum class GitFailure {
 }
 
 /** "2 minutes" for whole minutes, seconds otherwise. */
-private fun describe(duration: Duration): String {
+internal fun describe(duration: Duration): String {
 	val minutes = duration.toMinutes()
 	return if (minutes > 0 && duration == Duration.ofMinutes(minutes)) {
 		if (minutes == 1L) "1 minute" else "$minutes minutes"
