@@ -1,8 +1,10 @@
 import { ExternalLinkIcon } from "lucide-react"
-import { useRevalidator } from "react-router"
+import { Suspense } from "react"
+import { Await, useAsyncError, useRevalidator } from "react-router"
 
 import { PageHeader } from "~/components/page-header"
 import { ProjectBreadcrumb } from "~/components/projects/project-page"
+import { ChangedFiles } from "~/components/pull-requests/changed-files"
 import { Markdown } from "~/components/pull-requests/markdown"
 import { PullRequestAuthor } from "~/components/pull-requests/pull-request-author"
 import { PullRequestStateBadge } from "~/components/pull-requests/pull-request-badges"
@@ -10,15 +12,19 @@ import { PullRequestNotFound } from "~/components/pull-requests/pull-request-not
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { ApiError } from "~/lib/api"
 import { formatDateTime, getProject, projectId } from "~/lib/projects"
 import {
   getPullRequest,
+  listPullRequestFiles,
   positiveInt,
   pullRequestError,
   type PullRequest,
   type PullRequestError,
+  type PullRequestFile,
+  type PullRequestPage,
 } from "~/lib/pull-requests"
 import type { Route } from "./+types/pull-request-detail"
 
@@ -33,16 +39,25 @@ type LoaderData = {
   pull: PullRequest | null
   notFound: boolean
   error: PullRequestError | null
+  /** Streams in after the summary renders. */
+  files: Promise<PullRequestPage<PullRequestFile>> | null
 }
 
 export async function clientLoader({
   params,
+  request,
 }: Route.ClientLoaderArgs): Promise<LoaderData> {
   const id = projectId(params.id)
   const number = positiveInt(params.number)
-  const none = { project: null, pull: null, error: null }
+  const none = { project: null, pull: null, error: null, files: null }
   if (id === null) return { ...none, projectId: null, notFound: true }
   if (number === null) return { ...none, projectId: id, notFound: true }
+
+  const page = positiveInt(new URL(request.url).searchParams.get("page")) ?? 1
+  // Started alongside the pull request so it arrives sooner; the catch only marks the
+  // rejection handled for the paths below that don't render the files.
+  const files = listPullRequestFiles(id, number, page)
+  files.catch(() => undefined)
 
   const [project, pull] = await Promise.allSettled([
     getProject(id),
@@ -72,6 +87,7 @@ export async function clientLoader({
     pull: pull.value,
     notFound: false,
     error: null,
+    files,
   }
 }
 clientLoader.hydrate = true as const
@@ -88,7 +104,7 @@ export default function PullRequestDetail({
   loaderData,
 }: Route.ComponentProps) {
   const revalidator = useRevalidator()
-  const { projectId, project, pull, notFound, error } = loaderData
+  const { projectId, project, pull, notFound, error, files } = loaderData
 
   if (notFound) return <PullRequestNotFound projectId={projectId} />
   if (error || !pull) {
@@ -160,7 +176,54 @@ export default function PullRequestDetail({
           )}
         </CardContent>
       </Card>
+
+      {files && (
+        <Suspense fallback={<FilesSkeleton />}>
+          <Await resolve={files} errorElement={<FilesError />}>
+            {(page) => <ChangedFiles files={page} total={pull.changedFiles} />}
+          </Await>
+        </Suspense>
+      )}
     </>
+  )
+}
+
+function FilesSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Changed files</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function FilesError() {
+  const revalidator = useRevalidator()
+  const error = pullRequestError(useAsyncError())
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Couldn't load the changed files</AlertTitle>
+      <AlertDescription>
+        <p>{error.message}</p>
+        {error.retryable && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            disabled={revalidator.state === "loading"}
+            onClick={() => revalidator.revalidate()}
+          >
+            Try again
+          </Button>
+        )}
+      </AlertDescription>
+    </Alert>
   )
 }
 
