@@ -10,6 +10,7 @@ import { useEffect, useState } from "react"
 import { Form, Link, useNavigation, useRevalidator } from "react-router"
 import { toast } from "sonner"
 
+import { CheckoutCard } from "~/components/checkouts/checkout-card"
 import { UnsavedWorkList } from "~/components/checkouts/unsaved-work-list"
 import { PageHeader } from "~/components/page-header"
 import {
@@ -181,6 +182,7 @@ export default function ProjectDetail({
         projectId={project.id}
         repositoryUrl={project.repositoryUrl}
       />
+      <CheckoutCard projectId={project.id} archived={project.archived} />
     </>
   )
 }
