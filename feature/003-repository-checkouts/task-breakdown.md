@@ -261,7 +261,7 @@ Docs PR: [#23](https://github.com/fahadzia88/factory/pull/23), the base of the s
 | 09 | [spec](tasks/09-app-checkout-card/spec.md) | [#32](https://github.com/fahadzia88/factory/pull/32) | pr open |
 | 10 | [spec](tasks/10-app-worktree-actions/spec.md) | [#33](https://github.com/fahadzia88/factory/pull/33) | pr open |
 | 11 | [spec](tasks/11-agent-workflow-on-checkout/spec.md) | [#34](https://github.com/fahadzia88/factory/pull/34) | pr open |
-| 12 | [spec](tasks/12-infra-drop-agent-git/spec.md) | | not started |
+| 12 | [spec](tasks/12-infra-drop-agent-git/spec.md) | [#35](https://github.com/fahadzia88/factory/pull/35) | pr open |
 
 ## Changelog
 
@@ -271,3 +271,4 @@ Docs PR: [#23](https://github.com/fahadzia88/factory/pull/23), the base of the s
 - 2026-11-05 — Approved again.
 - 2026-11-05 — Task specs written and approved.
 - 2026-11-05 — Docs PR #23 open; in progress.
+- 2026-11-05 — All 12 task PRs open (#24–#35), stacked on the docs PR #23.
