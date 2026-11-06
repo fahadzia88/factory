@@ -55,7 +55,7 @@ class ProjectController(private val projectService: ProjectService) {
 	fun update(@PathVariable id: Long, @RequestBody request: ProjectRequest): ProjectResponse =
 		ProjectResponse.from(projectService.update(id, request.toInput()))
 
-	/** Hides the project from the default list and makes it read-only. Idempotent. */
+	/** Hides the project from the default list, makes it read-only and deletes its repository checkout. Idempotent. */
 	@PostMapping("/{id}/archive")
 	fun archive(@PathVariable id: Long): ProjectResponse = ProjectResponse.from(projectService.archive(id))
 

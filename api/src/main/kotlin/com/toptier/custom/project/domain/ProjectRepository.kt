@@ -16,6 +16,9 @@ interface ProjectRepository : JpaRepository<Project, Long>, JpaSpecificationExec
 	/** True when any project, archived included, has exactly this repository URL. */
 	fun existsByRepositoryUrl(repositoryUrl: String): Boolean
 
+	/** The project, archived or not, with exactly this repository URL, or null. */
+	fun findByRepositoryUrl(repositoryUrl: String): Project?
+
 	/** As [existsByRepositoryUrl], ignoring the project being updated. */
 	fun existsByRepositoryUrlAndIdNot(repositoryUrl: String, id: Long): Boolean
 
