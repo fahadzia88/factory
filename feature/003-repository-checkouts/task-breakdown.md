@@ -259,7 +259,7 @@ Docs PR: [#23](https://github.com/fahadzia88/factory/pull/23), the base of the s
 | 07 | [spec](tasks/07-api-archive-lookup/spec.md) | [#30](https://github.com/fahadzia88/factory/pull/30) | pr open |
 | 08 | [spec](tasks/08-app-archive-warning/spec.md) | [#31](https://github.com/fahadzia88/factory/pull/31) | pr open |
 | 09 | [spec](tasks/09-app-checkout-card/spec.md) | [#32](https://github.com/fahadzia88/factory/pull/32) | pr open |
-| 10 | [spec](tasks/10-app-worktree-actions/spec.md) | | not started |
+| 10 | [spec](tasks/10-app-worktree-actions/spec.md) | [#33](https://github.com/fahadzia88/factory/pull/33) | pr open |
 | 11 | [spec](tasks/11-agent-workflow-on-checkout/spec.md) | | not started |
 | 12 | [spec](tasks/12-infra-drop-agent-git/spec.md) | | not started |
 
