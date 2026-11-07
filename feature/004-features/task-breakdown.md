@@ -282,10 +282,10 @@ changes are additive, and the user confirms each edit. No `locked` file changes.
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
 | 00 | — | [#38](https://github.com/fahadzia88/factory/pull/38) | pr open |
-| 01 | [spec](tasks/01-infra-workflow-file/spec.md) | | not started |
-| 02 | [spec](tasks/02-api-feature-foundation/spec.md) | | not started |
-| 03 | [spec](tasks/03-api-feature-read/spec.md) | | not started |
-| 04 | [spec](tasks/04-api-feature-create/spec.md) | | not started |
+| 01 | [spec](tasks/01-infra-workflow-file/spec.md) | [#39](https://github.com/fahadzia88/factory/pull/39) | pr open (coordinator) |
+| 02 | [spec](tasks/02-api-feature-foundation/spec.md) | [#40](https://github.com/fahadzia88/factory/pull/40) | pr open (factory-3d) |
+| 03 | [spec](tasks/03-api-feature-read/spec.md) | [#41](https://github.com/fahadzia88/factory/pull/41) | pr open (factory-3d) |
+| 04 | [spec](tasks/04-api-feature-create/spec.md) | | in progress (factory-3d) |
 | 05 | [spec](tasks/05-api-feature-steps/spec.md) | | not started |
 | 06 | [spec](tasks/06-api-feature-chat/spec.md) | | not started |
 | 07 | [spec](tasks/07-agent-feature-read-tools/spec.md) | | not started |
