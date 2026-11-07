@@ -13,6 +13,10 @@ import com.toptier.custom.feature.exception.FeatureException
 import com.toptier.custom.feature.exception.FeatureNotFoundException
 import com.toptier.custom.feature.exception.FeatureProjectArchivedException
 import com.toptier.custom.feature.exception.InvalidFeatureNameException
+import com.toptier.custom.feature.exception.InvalidStatusException
+import com.toptier.custom.feature.exception.InvalidStepException
+import com.toptier.custom.feature.exception.InvalidStepTypeException
+import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import org.slf4j.LoggerFactory
@@ -43,6 +47,12 @@ class FeatureExceptionHandler {
 			.apply { setProperty("errors", mapOf("name" to ex.message)) }
 		is WorkflowInvalidException -> problem(HttpStatus.CONFLICT, "workflow_invalid", ex.message!!)
 		is FeatureProjectArchivedException -> problem(HttpStatus.CONFLICT, "project_archived", ex.message!!)
+		is InvalidStatusException -> problem(HttpStatus.CONFLICT, "invalid_status", ex.message!!)
+			.apply { setProperty("allowed", ex.allowed) }
+		is InvalidStepTypeException -> problem(HttpStatus.CONFLICT, "invalid_step_type", ex.message!!)
+			.apply { setProperty("allowed", ex.allowed) }
+		is InvalidStepException -> problem(HttpStatus.BAD_REQUEST, "invalid_step", ex.message!!)
+		is StepNotFoundException -> problem(HttpStatus.NOT_FOUND, "step_not_found", ex.message!!)
 	}
 
 	/** Thrown by the checkout package while a feature is created. */

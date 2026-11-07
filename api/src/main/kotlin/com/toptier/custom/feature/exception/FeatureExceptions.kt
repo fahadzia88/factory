@@ -14,3 +14,17 @@ class FeatureNotFoundException : FeatureException("Feature not found.")
 
 /** The project is archived, so no feature can be started on it. */
 class FeatureProjectArchivedException : FeatureException("This project is archived. Restore it to start a feature.")
+
+/** [status] isn't one of the [allowed] states of the feature's workflow or of the step's type. */
+class InvalidStatusException(val status: String?, val allowed: List<String>) :
+	FeatureException("\"${status ?: ""}\" isn't one of this workflow's states: ${allowed.joinToString(", ")}.")
+
+/** [type] isn't a step key of the feature's workflow; [allowed] are the keys. */
+class InvalidStepTypeException(val type: String?, val allowed: List<String>) :
+	FeatureException("\"${type ?: ""}\" isn't a step in this feature's workflow: ${allowed.joinToString(", ")}.")
+
+/** A step's title or document path is invalid, or an update changes nothing. */
+class InvalidStepException(message: String) : FeatureException(message)
+
+/** No step with that id in the feature. */
+class StepNotFoundException : FeatureException("Step not found.")

@@ -15,8 +15,14 @@ import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.feature.exception.FeatureNotFoundException
 import com.toptier.custom.feature.exception.FeatureProjectArchivedException
 import com.toptier.custom.feature.exception.InvalidFeatureNameException
+import com.toptier.custom.feature.exception.InvalidStatusException
+import com.toptier.custom.feature.exception.InvalidStepException
+import com.toptier.custom.feature.exception.InvalidStepTypeException
+import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
 import com.toptier.custom.feature.service.FeatureCreator
+import com.toptier.custom.feature.service.FeatureProgress
+import com.toptier.custom.feature.service.StepChanges
 import com.toptier.custom.feature.service.FeatureService
 import com.toptier.custom.feature.service.FeatureView
 import com.toptier.custom.feature.service.FeatureWorktree
@@ -59,6 +65,9 @@ class FeatureControllerTests {
 
 	@MockitoBean
 	lateinit var featureCreator: FeatureCreator
+
+	@MockitoBean
+	lateinit var featureProgress: FeatureProgress
 
 	@Test
 	fun `rejects requests without a token`() {
@@ -189,6 +198,59 @@ class FeatureControllerTests {
 			content { string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("secret stderr"))) }
 		}
 	}
+
+	@Test
+	fun `progress routes need a token`() {
+		mockMvc.put("$BASE/21/status") { json("""{"status":"breakdown"}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/steps") { json("""{"type":"spec","title":"x"}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.patch("$BASE/21/steps/5") { json("""{"status":"approved"}""") }.andExpect { status { isUnauthorized() } }
+	}
+
+	@Test
+	fun `status answers the feature, steps answer the step`() {
+		given(featureProgress.setStatus(12, 21, "breakdown")).willReturn(view(null))
+		given(featureProgress.addStep(12, 21, "requirements", "Requirements", null)).willReturn(stepResult())
+		given(featureProgress.updateStep(12, 21, 5, StepChanges(status = "draft"))).willReturn(stepResult())
+
+		mockMvc.put("$BASE/21/status") { auth(); json("""{"status":"breakdown"}""") }.andExpect {
+			status { isOk() }
+			jsonPath("$.id") { value(21) }
+		}
+		mockMvc.post("$BASE/21/steps") { auth(); json("""{"type":"requirements","title":"Requirements"}""") }.andExpect {
+			status { isCreated() }
+			jsonPath("$.id") { value(5) }
+			jsonPath("$.typeTitle") { value("Requirements") }
+			jsonPath("$.states[0]") { value("draft") }
+		}
+		mockMvc.patch("$BASE/21/steps/5") { auth(); json("""{"status":"draft"}""") }.andExpect {
+			status { isOk() }
+			jsonPath("$.status") { value("draft") }
+		}
+	}
+
+	@Test
+	fun `progress refusals map to 409, 400 and 404`() {
+		given(featureProgress.setStatus(12, 21, "shipped")).willThrow(InvalidStatusException("shipped", listOf("requirements", "done")))
+		given(featureProgress.addStep(12, 21, "plan", "x", null)).willThrow(InvalidStepTypeException("plan", listOf("requirements")))
+		given(featureProgress.addStep(12, 21, "spec", "", null)).willThrow(InvalidStepException("Give the step a title of up to 200 characters."))
+		given(featureProgress.updateStep(12, 21, 6, StepChanges(status = "x"))).willThrow(StepNotFoundException())
+		given(featureProgress.setStatus(12, 22, "done")).willThrow(FeatureNotFoundException())
+
+		mockMvc.put("$BASE/21/status") { auth(); json("""{"status":"shipped"}""") }.andExpect {
+			problem(409, "invalid_status", "\"shipped\" isn't one of this workflow's states: requirements, done.")
+			jsonPath("$.allowed[1]") { value("done") }
+		}
+		mockMvc.post("$BASE/21/steps") { auth(); json("""{"type":"plan","title":"x"}""") }.andExpect {
+			problem(409, "invalid_step_type")
+			jsonPath("$.allowed[0]") { value("requirements") }
+		}
+		mockMvc.post("$BASE/21/steps") { auth(); json("""{"type":"spec","title":""}""") }.andExpect { problem(400, "invalid_step") }
+		mockMvc.patch("$BASE/21/steps/6") { auth(); json("""{"status":"x"}""") }.andExpect { problem(404, "step_not_found") }
+		mockMvc.put("$BASE/22/status") { auth(); json("""{"status":"done"}""") }.andExpect { problem(404, "feature_not_found") }
+		mockMvc.patch("$BASE/21/steps/abc") { auth(); json("""{"status":"x"}""") }.andExpect { problem(400, "invalid_request") }
+	}
+
+	private fun stepResult() = view(null).let { it.steps.single() to it.workflow }
 
 	private fun MockHttpServletRequestDsl.json(body: String) {
 		contentType = MediaType.APPLICATION_JSON

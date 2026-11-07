@@ -12,6 +12,15 @@ import java.time.Instant
 /** Body of `POST /api/projects/{id}/features`. */
 data class CreateFeatureRequest(val name: String? = null)
 
+/** Body of `PUT …/features/{featureId}/status`. */
+data class SetStatusRequest(val status: String? = null)
+
+/** Body of `POST …/features/{featureId}/steps`; [documentPath] is optional. */
+data class AddStepRequest(val type: String? = null, val title: String? = null, val documentPath: String? = null)
+
+/** Body of `PATCH …/steps/{stepId}`: the fields to change; an empty [documentPath] clears it. */
+data class UpdateStepRequest(val status: String? = null, val title: String? = null, val documentPath: String? = null)
+
 /** A feature with its worktree, workflow and steps. */
 data class FeatureResponse(
 	val id: Long,
