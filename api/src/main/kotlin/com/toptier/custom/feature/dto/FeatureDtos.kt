@@ -9,6 +9,9 @@ import com.toptier.custom.feature.service.Workflow
 import com.toptier.custom.feature.service.WorkflowStep
 import java.time.Instant
 
+/** Body of `POST /api/projects/{id}/features`. */
+data class CreateFeatureRequest(val name: String? = null)
+
 /** A feature with its worktree, workflow and steps. */
 data class FeatureResponse(
 	val id: Long,
