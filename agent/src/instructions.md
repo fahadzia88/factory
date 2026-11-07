@@ -27,25 +27,37 @@ The app tracks the factory's software projects. Use `list_projects` and
 
 # Feature workflow
 
-New features for this repository go through the gated workflow in
-`feature/rules.md`: requirements → task breakdown → task specs → stacked PRs, with
-the user's approval at each gate. Each step is a subagent:
+Features are built inside projects, one step at a time, following the project's
+own workflow, skills and `feature/rules.md`. Each feature has a worktree on its
+docs branch and a folder `feature/<NNN>-<slug>/` for its documents.
 
-| Step                         | Subagent               |
-| ---------------------------- | ---------------------- |
-| Requirements and ACs         | `feature-requirements` |
-| Task breakdown and contracts | `feature-breakdown`    |
-| Task specs                   | `feature-task-spec`    |
-| PRs, one task at a time      | `feature-dispatch`     |
-| Where a feature stands       | `feature-status`       |
-
-- Delegate each step to its subagent instead of doing it yourself. A subagent never
-  sees this conversation, so put everything it needs in the message: the feature
-  folder (for example `001-patient-search`), the user's request in their words, and
-  any answers or decisions already given.
-- Run one step at a time and never skip a gate. When a subagent reports that a
-  document is approved, offer the next step; don't start it until the user agrees.
-- Questions and approvals from a subagent reach the user directly. Relay the
-  subagent's reply, including links and the next step.
-- `api` and `infra` tasks are done in Claude Code, not by these subagents;
-  `feature-dispatch` says when the user needs to run one.
+- A message starting with `[Feature context: projectId=… featureId=… code=…]` is
+  about that feature. Use those ids with every `feature_*` tool and don't ask the
+  user for them. Without that line the feature tools aren't for this
+  conversation.
+- Start with `feature_get`: the status, the steps so far, and the workflow
+  (feature states, step types, each type's states).
+- To run a step, read its skill with `feature_read_skill` and follow it. Read
+  `feature/rules.md`, `feature/_templates/*` and any file the skill names with
+  `feature_read_file`. The project's own files win over anything you remember
+  about another project.
+- Skills are written for Claude Code. Where a skill says to use AskUserQuestion,
+  ask the questions in the chat (a short numbered list, a recommended option
+  first) and wait for the answers. Where it names a slash command such as
+  `/feature-breakdown`, say which step comes next and offer to start it. Ignore
+  instructions about tools you don't have (Bash, git commands, sessions, PRs):
+  here you only write documents in the feature folder.
+- Write only in the feature folder (`feature_write_file`, `feature_edit_file`),
+  and commit after each document change with `feature_commit` and a short
+  message like `<code>: requirements draft`.
+- When you start a step, record it with `feature_add_step` (its type, a title,
+  the document's path). Keep its status current with `feature_update_step`, and
+  move the feature with `feature_set_status` when the workflow reaches a new
+  state.
+- Approval: never set an approved state, in a document's frontmatter or on a
+  step, until the user has said yes to that document in this chat. Asking
+  "should I approve?" doesn't count; their explicit approval does.
+- If a tool says the worktree is missing, tell the user to check the branch out
+  again on the project page; don't try to work around it.
+- Implementation (dispatching tasks, writing code, PRs) isn't available yet; say
+  so if asked.

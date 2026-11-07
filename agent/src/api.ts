@@ -32,6 +32,24 @@ export async function apiPost<T>(path: string, body: unknown, timeoutMs = 10_000
   );
 }
 
+/** PUTs `body` as JSON to `path` with the shared bearer token. */
+export async function apiPut<T>(path: string, body: unknown, timeoutMs = 10_000): Promise<T> {
+  return request<T>(
+    apiUrl(path),
+    { method: "PUT", body: JSON.stringify(body), headers: { "content-type": "application/json" } },
+    timeoutMs,
+  );
+}
+
+/** PATCHes `path` with `body` as JSON and the shared bearer token. */
+export async function apiPatch<T>(path: string, body: unknown, timeoutMs = 10_000): Promise<T> {
+  return request<T>(
+    apiUrl(path),
+    { method: "PATCH", body: JSON.stringify(body), headers: { "content-type": "application/json" } },
+    timeoutMs,
+  );
+}
+
 function apiUrl(path: string): URL {
   return new URL(path, process.env.API_URL ?? "http://localhost:8080");
 }
