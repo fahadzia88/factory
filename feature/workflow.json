@@ -1,0 +1,8 @@
+{
+  "featureStates": ["requirements", "breakdown", "specs", "implementation", "done", "abandoned"],
+  "steps": [
+    { "key": "requirements", "title": "Requirements", "skill": "feature-requirements", "states": ["draft", "approved"] },
+    { "key": "breakdown", "title": "Task breakdown", "skill": "feature-breakdown", "states": ["draft", "approved"] },
+    { "key": "spec", "title": "Task spec", "skill": "feature-task-spec", "states": ["draft", "approved"] }
+  ]
+}
