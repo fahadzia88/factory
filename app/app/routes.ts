@@ -16,6 +16,7 @@ export default [
     route("projects/:id/edit", "routes/project-edit.tsx"),
     route("projects/:id/pulls", "routes/project-pulls.ts"),
     route("projects/:id/pulls/:number", "routes/pull-request-detail.tsx"),
+    route("projects/:id/features/:featureId", "routes/feature-detail.tsx"),
     route("assistant", "routes/assistant.tsx"),
   ]),
 ] satisfies RouteConfig
