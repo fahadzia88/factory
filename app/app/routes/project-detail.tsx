@@ -11,6 +11,7 @@ import { Form, Link, useNavigation, useRevalidator } from "react-router"
 import { toast } from "sonner"
 
 import { CheckoutCard } from "~/components/checkouts/checkout-card"
+import { FeaturesCard } from "~/components/features/features-card"
 import { UnsavedWorkList } from "~/components/checkouts/unsaved-work-list"
 import { PageHeader } from "~/components/page-header"
 import {
@@ -178,6 +179,7 @@ export default function ProjectDetail({
       )}
 
       <ProjectDetails project={project} />
+      <FeaturesCard projectId={project.id} archived={project.archived} />
       <PullRequestsCard
         projectId={project.id}
         repositoryUrl={project.repositoryUrl}
