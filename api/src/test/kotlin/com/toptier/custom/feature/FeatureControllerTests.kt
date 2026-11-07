@@ -4,7 +4,19 @@ import com.toptier.custom.feature.controller.FeatureController
 import com.toptier.custom.feature.controller.FeatureExceptionHandler
 import com.toptier.custom.feature.domain.Feature
 import com.toptier.custom.feature.domain.FeatureStep
+import com.toptier.custom.checkout.exception.CheckoutNotFoundException
+import com.toptier.custom.checkout.exception.CheckoutNotReadyException
+import com.toptier.custom.checkout.exception.CheckoutProjectArchivedException
+import com.toptier.custom.checkout.exception.GitCommandException
+import com.toptier.custom.checkout.exception.GitFailure
+import com.toptier.custom.checkout.exception.GitNotConfiguredException
+import com.toptier.custom.checkout.exception.GitRemoteException
+import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.feature.exception.FeatureNotFoundException
+import com.toptier.custom.feature.exception.FeatureProjectArchivedException
+import com.toptier.custom.feature.exception.InvalidFeatureNameException
+import com.toptier.custom.feature.exception.WorkflowInvalidException
+import com.toptier.custom.feature.service.FeatureCreator
 import com.toptier.custom.feature.service.FeatureService
 import com.toptier.custom.feature.service.FeatureView
 import com.toptier.custom.feature.service.FeatureWorktree
@@ -19,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockHttpServletRequestDsl
@@ -27,7 +40,9 @@ import org.springframework.test.web.servlet.MockMvcResultMatchersDsl
 import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
+import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
+import java.time.Duration
 import java.time.Instant
 
 @WebMvcTest(FeatureController::class)
@@ -41,6 +56,9 @@ class FeatureControllerTests {
 
 	@MockitoBean
 	lateinit var featureService: FeatureService
+
+	@MockitoBean
+	lateinit var featureCreator: FeatureCreator
 
 	@Test
 	fun `rejects requests without a token`() {
@@ -117,6 +135,64 @@ class FeatureControllerTests {
 		mockMvc.delete("$BASE/21") { auth() }.andExpect { status { isMethodNotAllowed() } }
 		mockMvc.put("$BASE/21") { auth() }.andExpect { status { isMethodNotAllowed() } }
 		mockMvc.patch("$BASE/21") { auth() }.andExpect { status { isMethodNotAllowed() } }
+	}
+
+	@Test
+	fun `create answers 201 with the feature`() {
+		given(featureCreator.create(12, "Features")).willReturn(view(null))
+
+		mockMvc.post(BASE).andExpect { status { isUnauthorized() } }
+		mockMvc.post(BASE) { auth(); json("""{"name":"Features"}""") }.andExpect {
+			status { isCreated() }
+			jsonPath("$.id") { value(21) }
+			jsonPath("$.code") { value("004-features") }
+			jsonPath("$.status") { value("requirements") }
+		}
+	}
+
+	@Test
+	fun `create refusals map to 400 and 409`() {
+		given(featureCreator.create(12, "")).willThrow(InvalidFeatureNameException("Enter a name."))
+		given(featureCreator.create(12, "w")).willThrow(WorkflowInvalidException("feature/workflow.json: the file is missing."))
+		given(featureCreator.create(12, "a")).willThrow(FeatureProjectArchivedException())
+		given(featureCreator.create(12, "c")).willThrow(CheckoutProjectArchivedException(12))
+		given(featureCreator.create(12, "n")).willThrow(CheckoutNotReadyException())
+		given(featureCreator.create(12, "m")).willThrow(CheckoutNotFoundException())
+
+		mockMvc.post(BASE) { auth(); json("""{"name":""}""") }.andExpect {
+			problem(400, "invalid_name", "Enter a name.")
+			jsonPath("$.errors.name") { value("Enter a name.") }
+		}
+		mockMvc.post(BASE) { auth(); json("""{"name":"w"}""") }
+			.andExpect { problem(409, "workflow_invalid", "feature/workflow.json: the file is missing.") }
+		mockMvc.post(BASE) { auth(); json("""{"name":"a"}""") }.andExpect { problem(409, "project_archived") }
+		mockMvc.post(BASE) { auth(); json("""{"name":"c"}""") }.andExpect { problem(409, "project_archived") }
+		val notReady = "The project's repository checkout isn't ready. Check it out on the project page first."
+		mockMvc.post(BASE) { auth(); json("""{"name":"n"}""") }.andExpect { problem(409, "checkout_not_ready", notReady) }
+		mockMvc.post(BASE) { auth(); json("""{"name":"m"}""") }.andExpect { problem(409, "checkout_not_ready", notReady) }
+		mockMvc.post(BASE) { auth(); json("{not json") }.andExpect { problem(400, "invalid_request") }
+	}
+
+	@Test
+	fun `create git failures map to 502, 503, 504 and 500`() {
+		given(featureCreator.create(12, "r")).willThrow(GitRemoteException(GitFailure.UNREACHABLE))
+		given(featureCreator.create(12, "n")).willThrow(GitNotConfiguredException())
+		given(featureCreator.create(12, "t")).willThrow(GitTimeoutException(Duration.ofMinutes(2)))
+		given(featureCreator.create(12, "e")).willThrow(GitCommandException("git commit", 1, "secret stderr"))
+
+		mockMvc.post(BASE) { auth(); json("""{"name":"r"}""") }.andExpect { problem(502, "git_remote_error") }
+		mockMvc.post(BASE) { auth(); json("""{"name":"n"}""") }.andExpect { problem(503, "git_not_configured") }
+		mockMvc.post(BASE) { auth(); json("""{"name":"t"}""") }
+			.andExpect { problem(504, "git_timeout", "GitHub didn't answer within 2 minutes. Try again.") }
+		mockMvc.post(BASE) { auth(); json("""{"name":"e"}""") }.andExpect {
+			problem(500, "git_error", "A git command failed on the server.")
+			content { string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("secret stderr"))) }
+		}
+	}
+
+	private fun MockHttpServletRequestDsl.json(body: String) {
+		contentType = MediaType.APPLICATION_JSON
+		content = body
 	}
 
 	private fun MockMvcResultMatchersDsl.problem(status: Int, code: String, detail: String? = null) {
