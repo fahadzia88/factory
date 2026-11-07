@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
 import { type Options, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import { featureGet } from "./tools/feature-get.ts";
+import { featureListFiles } from "./tools/feature-list-files.ts";
+import { featureReadFile } from "./tools/feature-read-file.ts";
+import { featureReadSkill } from "./tools/feature-read-skill.ts";
 import { getProject } from "./tools/get-project.ts";
 import { listProjects } from "./tools/list-projects.ts";
 
@@ -7,7 +11,14 @@ import { listProjects } from "./tools/list-projects.ts";
  * The project's tools, built with `tool()` from the SDK (see README.md, "Tools").
  * They are served to the model as the in-process MCP server `app`, so the model sees them as `mcp__app__<name>`.
  */
-const tools: Parameters<typeof createSdkMcpServer>[0]["tools"] = [listProjects, getProject];
+const tools: Parameters<typeof createSdkMcpServer>[0]["tools"] = [
+  listProjects,
+  getProject,
+  featureGet,
+  featureReadSkill,
+  featureListFiles,
+  featureReadFile,
+];
 
 const instructions = readFileSync(new URL("./instructions.md", import.meta.url), "utf8");
 
