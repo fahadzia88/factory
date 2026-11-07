@@ -11,3 +11,6 @@ class WorkflowInvalidException(message: String) : FeatureException(message)
 
 /** No feature with that id in the project. */
 class FeatureNotFoundException : FeatureException("Feature not found.")
+
+/** The project is archived, so no feature can be started on it. */
+class FeatureProjectArchivedException : FeatureException("This project is archived. Restore it to start a feature.")
