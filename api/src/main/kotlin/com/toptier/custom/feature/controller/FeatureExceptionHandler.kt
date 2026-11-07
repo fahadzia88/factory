@@ -9,6 +9,9 @@ import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.describe
+import com.toptier.custom.feature.exception.AgentUnavailableException
+import com.toptier.custom.feature.exception.BlankMessageException
+import com.toptier.custom.feature.exception.ChatBusyException
 import com.toptier.custom.feature.exception.FeatureException
 import com.toptier.custom.feature.exception.FeatureNotFoundException
 import com.toptier.custom.feature.exception.FeatureProjectArchivedException
@@ -53,6 +56,12 @@ class FeatureExceptionHandler {
 			.apply { setProperty("allowed", ex.allowed) }
 		is InvalidStepException -> problem(HttpStatus.BAD_REQUEST, "invalid_step", ex.message!!)
 		is StepNotFoundException -> problem(HttpStatus.NOT_FOUND, "step_not_found", ex.message!!)
+		is ChatBusyException -> problem(HttpStatus.CONFLICT, "chat_busy", ex.message!!)
+		is AgentUnavailableException -> {
+			log.info("Feature chat: {}", ex.message)
+			problem(HttpStatus.BAD_GATEWAY, "agent_unavailable", ex.message!!)
+		}
+		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 	}
 
 	/** Thrown by the checkout package while a feature is created. */
