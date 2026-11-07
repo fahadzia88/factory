@@ -8,3 +8,6 @@ class InvalidFeatureNameException(message: String) : FeatureException(message)
 
 /** The project's `feature/workflow.json` or requirements template is missing or invalid; the message names the file and the problem. */
 class WorkflowInvalidException(message: String) : FeatureException(message)
+
+/** No feature with that id in the project. */
+class FeatureNotFoundException : FeatureException("Feature not found.")
