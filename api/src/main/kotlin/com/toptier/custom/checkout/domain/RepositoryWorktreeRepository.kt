@@ -14,6 +14,9 @@ interface RepositoryWorktreeRepository : JpaRepository<RepositoryWorktree, Long>
 	/** The worktree with [id] when it belongs to [checkoutId], else null. */
 	fun findByIdAndCheckoutId(id: Long, checkoutId: Long): RepositoryWorktree?
 
+	/** The checkout's worktree for [branch], or null. */
+	fun findByCheckoutIdAndBranch(checkoutId: Long, branch: String): RepositoryWorktree?
+
 	/** True when the checkout already has a worktree for [branch]. */
 	fun existsByCheckoutIdAndBranch(checkoutId: Long, branch: String): Boolean
 
