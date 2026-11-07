@@ -283,8 +283,8 @@ changes are additive, and the user confirms each edit. No `locked` file changes.
 | -- | ---- | -- | ------ |
 | 00 | — | [#38](https://github.com/fahadzia88/factory/pull/38) | pr open |
 | 01 | [spec](tasks/01-infra-workflow-file/spec.md) | [#39](https://github.com/fahadzia88/factory/pull/39) | pr open (coordinator) |
-| 02 | [spec](tasks/02-api-feature-foundation/spec.md) | | in progress (factory-3d) |
-| 03 | [spec](tasks/03-api-feature-read/spec.md) | | not started |
+| 02 | [spec](tasks/02-api-feature-foundation/spec.md) | [#40](https://github.com/fahadzia88/factory/pull/40) | pr open (factory-3d) |
+| 03 | [spec](tasks/03-api-feature-read/spec.md) | | in progress (factory-3d) |
 | 04 | [spec](tasks/04-api-feature-create/spec.md) | | not started |
 | 05 | [spec](tasks/05-api-feature-steps/spec.md) | | not started |
 | 06 | [spec](tasks/06-api-feature-chat/spec.md) | | not started |
