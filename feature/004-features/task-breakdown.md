@@ -287,8 +287,8 @@ changes are additive, and the user confirms each edit. No `locked` file changes.
 | 03 | [spec](tasks/03-api-feature-read/spec.md) | [#41](https://github.com/fahadzia88/factory/pull/41) | pr open (factory-3d) |
 | 04 | [spec](tasks/04-api-feature-create/spec.md) | [#42](https://github.com/fahadzia88/factory/pull/42) | pr open (factory-3d) |
 | 05 | [spec](tasks/05-api-feature-steps/spec.md) | [#44](https://github.com/fahadzia88/factory/pull/44) | pr open (factory-3d) |
-| 06 | [spec](tasks/06-api-feature-chat/spec.md) | | in progress (factory-3d) |
-| 07 | [spec](tasks/07-agent-feature-read-tools/spec.md) | | not started |
+| 06 | [spec](tasks/06-api-feature-chat/spec.md) | [#45](https://github.com/fahadzia88/factory/pull/45) | pr open (factory-3d) |
+| 07 | [spec](tasks/07-agent-feature-read-tools/spec.md) | | in progress (factory-3d) |
 | 08 | [spec](tasks/08-agent-feature-write-tools/spec.md) | | not started |
 | 09 | [spec](tasks/09-app-feature-page/spec.md) | | not started |
 | 10 | [spec](tasks/10-app-feature-chat/spec.md) | | not started |
