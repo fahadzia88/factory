@@ -2,8 +2,8 @@
 feature: 005-probe
 task: 03-app-file-tree
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 branch: feat/005-probe/03-app-file-tree
 base: feat/005-probe/02-api-feature-file-routes
 covers: [AC-1, AC-3, AC-4, AC-13, AC-14]

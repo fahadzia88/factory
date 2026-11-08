@@ -2,8 +2,8 @@
 feature: 005-probe
 task: 02-api-feature-file-routes
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 branch: feat/005-probe/02-api-feature-file-routes
 base: feat/005-probe/01-api-feature-files
 covers: [AC-1, AC-2, AC-8, AC-10, AC-11, AC-15]

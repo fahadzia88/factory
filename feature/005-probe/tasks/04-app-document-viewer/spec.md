@@ -2,8 +2,8 @@
 feature: 005-probe
 task: 04-app-document-viewer
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 branch: feat/005-probe/04-app-document-viewer
 base: feat/005-probe/03-app-file-tree
 covers: [AC-2, AC-8, AC-12]

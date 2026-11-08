@@ -2,8 +2,8 @@
 feature: 005-probe
 task: 01-api-feature-files
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 branch: feat/005-probe/01-api-feature-files
 base: feat/005-probe/00-docs
 covers: [AC-1, AC-3, AC-4, AC-5, AC-8, AC-9, AC-11]

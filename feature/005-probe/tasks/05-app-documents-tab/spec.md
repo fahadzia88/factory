@@ -2,8 +2,8 @@
 feature: 005-probe
 task: 05-app-documents-tab
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 branch: feat/005-probe/05-app-documents-tab
 base: feat/005-probe/04-app-document-viewer
 covers: [AC-1, AC-2, AC-6, AC-7, AC-8, AC-9, AC-10, AC-13, AC-16]
