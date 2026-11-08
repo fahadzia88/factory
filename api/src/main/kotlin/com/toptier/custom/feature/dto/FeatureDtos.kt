@@ -1,6 +1,7 @@
 package com.toptier.custom.feature.dto
 
 import com.toptier.custom.feature.domain.Feature
+import com.toptier.custom.feature.domain.FeatureMessage
 import com.toptier.custom.feature.domain.FeatureStep
 import com.toptier.custom.feature.service.FeatureNaming
 import com.toptier.custom.feature.service.FeatureView
@@ -20,6 +21,20 @@ data class AddStepRequest(val type: String? = null, val title: String? = null, v
 
 /** Body of `PATCH …/steps/{stepId}`: the fields to change; an empty [documentPath] clears it. */
 data class UpdateStepRequest(val status: String? = null, val title: String? = null, val documentPath: String? = null)
+
+/** Body of `POST …/features/{featureId}/messages`. */
+data class SendMessageRequest(val message: String? = null)
+
+/** One stored chat message; [role] is `user` or `assistant`. */
+data class FeatureMessageResponse(val id: Long, val role: String, val text: String, val createdAt: Instant) {
+	companion object {
+		fun from(message: FeatureMessage) =
+			FeatureMessageResponse(message.id!!, message.role.name.lowercase(), message.text, message.createdAt)
+	}
+}
+
+/** Whether a running turn was stopped. */
+data class CancelResponse(val cancelled: Boolean)
 
 /** A feature with its worktree, workflow and steps. */
 data class FeatureResponse(
