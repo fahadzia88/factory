@@ -1,7 +1,7 @@
 ---
 feature: 005-probe
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 ---
 
 # Probe
@@ -76,3 +76,4 @@ People who run features in the app (reviewers and approvers) who want to browse 
 - 2026-11-07 — Created.
 - 2026-11-07 — First draft of problem, scope and constraints; open questions listed.
 - 2026-11-08 — Open questions settled (auto-refresh plus manual button, list all files with only .md openable, Documents tab beside chat, worktree version); acceptance criteria written.
+- 2026-11-08 — Approved by the user.
