@@ -1,4 +1,8 @@
 import { api, ApiError, apiErrorMessage, problemDetail } from "~/lib/api"
+import { getPassword } from "~/lib/password"
+
+// lib/api.ts doesn't export its base; the chat streams with fetch, so it needs the same one
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
 
 export type FeatureWorkflowStep = {
   key: string
@@ -85,6 +89,94 @@ export function listFeatureMessages(projectId: number, featureId: number) {
 export function cancelFeatureChat(projectId: number, featureId: number) {
   return api.post<{ cancelled: boolean }>(
     `${featuresPath(projectId)}/${featureId}/messages/cancel`
+  )
+}
+
+export type FeatureChatTool = {
+  id: string
+  name: string
+  status: "running" | "completed" | "failed"
+}
+
+export type FeatureChatEvent =
+  | { type: "session"; sessionId: string }
+  | { type: "text"; delta: string }
+  | ({ type: "tool" } & FeatureChatTool)
+  | { type: "done"; text: string }
+  | { type: "error"; message: string }
+  | { type: "cancelled" }
+
+const CHAT_EVENTS = new Set([
+  "session",
+  "text",
+  "tool",
+  "done",
+  "error",
+  "cancelled",
+])
+
+/**
+ * Sends a chat message and reads the agent's NDJSON reply as it streams, calling `onEvent` for each
+ * event. Resolves with the final `done`, `error` or `cancelled` event; an error before the stream
+ * throws `ApiError` like every other call.
+ */
+export async function sendFeatureMessage(
+  projectId: number,
+  featureId: number,
+  message: string,
+  {
+    signal,
+    onEvent,
+  }: { signal?: AbortSignal; onEvent: (event: FeatureChatEvent) => void }
+): Promise<FeatureChatEvent> {
+  const headers = new Headers({
+    Accept: "application/x-ndjson",
+    "Content-Type": "application/json",
+  })
+  const token = getPassword()
+  if (token) headers.set("Authorization", `Bearer ${token}`)
+  const response = await fetch(
+    `${API_BASE_URL}${featuresPath(projectId)}/${featureId}/messages`,
+    { method: "POST", headers, body: JSON.stringify({ message }), signal }
+  )
+  if (!response.ok || !response.body) {
+    const type = response.headers.get("Content-Type") ?? ""
+    const body = type.includes("json")
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => null)
+    throw new ApiError(response.status, body)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffered = ""
+  let last: FeatureChatEvent | null = null
+  const handle = (line: string) => {
+    if (!line.trim()) return
+    let event: FeatureChatEvent
+    try {
+      event = JSON.parse(line)
+    } catch {
+      return
+    }
+    if (!CHAT_EVENTS.has(event?.type)) return
+    if (["done", "error", "cancelled"].includes(event.type)) last = event
+    onEvent(event)
+  }
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffered += decoder.decode(value, { stream: true })
+    const lines = buffered.split("\n")
+    buffered = lines.pop() ?? ""
+    lines.forEach(handle)
+  }
+  handle(buffered + decoder.decode())
+  return (
+    last ?? {
+      type: "error",
+      message: "The connection closed before the reply finished.",
+    }
   )
 }
 

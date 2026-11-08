@@ -1,5 +1,6 @@
 import { Link, useRevalidator } from "react-router"
 
+import { FeatureChat } from "~/components/features/feature-chat"
 import { FeatureNotFound } from "~/components/features/feature-not-found"
 import { FeatureStatusBadge } from "~/components/features/feature-status-badge"
 import { FeatureSteps } from "~/components/features/feature-steps"
@@ -149,6 +150,13 @@ export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
           <FeatureSteps steps={feature.steps} />
         </CardContent>
       </Card>
+
+      <FeatureChat
+        key={feature.id}
+        projectId={feature.projectId}
+        featureId={feature.id}
+        onTurnEnd={() => revalidator.revalidate()}
+      />
     </>
   )
 }
