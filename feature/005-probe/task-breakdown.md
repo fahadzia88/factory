@@ -1,7 +1,7 @@
 ---
 feature: 005-probe
-status: draft
-approved:
+status: approved
+approved: 2026-11-08
 ---
 
 # Probe: task breakdown
@@ -141,3 +141,4 @@ base file.
 ## Changelog
 
 - 2026-11-08 — Created.
+- 2026-11-08 — Approved.
