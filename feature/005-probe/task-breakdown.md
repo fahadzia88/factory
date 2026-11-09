@@ -133,11 +133,11 @@ base file.
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
 | 00 | — | [#51](https://github.com/fahadzia88/factory/pull/51) | pr open |
-| 01 | [spec](tasks/01-api-feature-files/spec.md) | | not started |
-| 02 | [spec](tasks/02-api-feature-file-routes/spec.md) | | not started |
-| 03 | [spec](tasks/03-app-file-tree/spec.md) | | not started |
-| 04 | [spec](tasks/04-app-document-viewer/spec.md) | | not started |
-| 05 | [spec](tasks/05-app-documents-tab/spec.md) | | not started |
+| 01 | [spec](tasks/01-api-feature-files/spec.md) | [#52](https://github.com/fahadzia88/factory/pull/52) | pr open |
+| 02 | [spec](tasks/02-api-feature-file-routes/spec.md) | [#53](https://github.com/fahadzia88/factory/pull/53) | pr open |
+| 03 | [spec](tasks/03-app-file-tree/spec.md) | [#54](https://github.com/fahadzia88/factory/pull/54) | pr open |
+| 04 | [spec](tasks/04-app-document-viewer/spec.md) | [#55](https://github.com/fahadzia88/factory/pull/55) | pr open |
+| 05 | [spec](tasks/05-app-documents-tab/spec.md) | [#56](https://github.com/fahadzia88/factory/pull/56) | pr open |
 
 ## Changelog
 
