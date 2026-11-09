@@ -1,7 +1,7 @@
 ---
 feature: 006-feature-implementation
-status: approved
-approved: 2026-11-09
+status: draft
+approved:
 ---
 
 # Feature Implementation
@@ -71,6 +71,14 @@ recommendations and approvals are typed by hand.
 - Questions and answers stay in the chat history after a reload.
 - Approval is unchanged: only the user's explicit yes approves a document; an "Approve" option
   counts as that yes.
+
+### 4. Markdown in the chat
+
+- The agent's replies in the feature chat are shown as GitHub-flavored Markdown (headings, lists,
+  tables, code blocks, links, task lists), reusing the app's existing Markdown renderer from the
+  pull request view. Raw HTML is never rendered. The user's own messages stay plain text.
+- Text that is still streaming is rendered as Markdown as it arrives. Question headers,
+  questions and option descriptions stay plain text.
 
 ## Non-goals
 
@@ -179,6 +187,17 @@ recommendations and approvals are typed by hand.
 - **AC-25** — Given a 375 px wide screen, when the question cards and the feature's PR list are
   shown, then nothing scrolls horizontally, and the cards work with the keyboard.
 
+### Markdown in the chat
+
+- **AC-26** — Given the agent replies with Markdown (a heading, a list, a table, a fenced code
+  block and a link), when the reply is shown in the feature chat, then it is rendered as
+  formatted content, also while it streams and after a reload; links open in a new tab.
+- **AC-27** — Given a reply or a user message containing raw HTML such as `<script>` or
+  `<img onerror=…>`, or a `javascript:` link, then it is shown as text or dropped and nothing
+  runs. The user's own messages are shown as typed, without Markdown formatting.
+- **AC-28** — Given a 375 px wide screen and a reply with a wide table or a long code line, then
+  the page doesn't scroll horizontally; the table or code block scrolls inside the message.
+
 ## Changelog
 
 - 2026-11-09 — Created.
@@ -186,3 +205,4 @@ recommendations and approvals are typed by hand.
 - 2026-11-09 — Open questions settled with the user (GIT_TOKEN with PR scope, polling, one task per
   turn, keep worktrees until done, no page controls); acceptance criteria written.
 - 2026-11-09 — Approved.
+- 2026-11-09 — Back to draft: added Markdown in the chat (scope 4, AC-26 to AC-28).

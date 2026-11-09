@@ -248,6 +248,7 @@ Stack order, bottom first. Each task is one PR based on the row above it.
 | 13 | agent | Task file tools: `task_list_files`, `task_read_file`, `task_write_file`, `task_edit_file`, `task_commit`, path and locked-file guards, worktree lookup. `node:test` incl. escapes, `.git`, symlinks, locked paths, wrong branch. | 12 | AC-5, AC-6 | `feat/006-feature-implementation/13-agent-task-files` |
 | 14 | agent | Task flow tools: `feature_tasks`, `task_start`, `task_open_pull`, `task_restack`, `feature_complete`; the "Implementation" section of `src/instructions.md`. | 13 | AC-2–AC-4, AC-7, AC-8, AC-10, AC-11, AC-15, AC-16 | `feat/006-feature-implementation/14-agent-task-flow` |
 | 15 | infra | `implementation` step type in `feature/workflow.json` (states `in-progress`, `pr-open`, `merged`, `stopped`, `skipped`) and the chat skill `.claude/skills/feature-implementation/SKILL.md`. Makes implementation startable. | 14 | AC-1, AC-2, AC-3, AC-7, AC-11, AC-15 | `feat/006-feature-implementation/15-infra-implementation-skill` |
+| 16 | app   | Markdown in the chat: agent messages (stored and streaming) render through the existing `Markdown` component from `components/pull-requests/markdown.tsx`, user messages stay plain text; wide tables and code blocks scroll inside the message; tests that raw HTML and `javascript:` links stay inert. | 15 | AC-26, AC-27, AC-28 | `feat/006-feature-implementation/16-app-chat-markdown` |
 
 Infra tasks 01 and 15 are done by the coordinator with the user's go-ahead. `src/agent.ts` and
 `src/instructions.md` (12–14), `docker-compose.yml` (01) and `application.properties` (none
@@ -284,6 +285,9 @@ as they are (the new tools are documented in `src/instructions.md`, not the lock
 | AC-23 | 09, 11           | `GET messages` order test; manual reload shows answered cards read-only |
 | AC-24 | 11, 12           | Manual: "Approve" option → agent records approval; no option → no approval |
 | AC-25 | 10, 11           | Manual at 375 px and with the keyboard |
+| AC-26 | 16               | Component test: heading, list, table, code block and link render as elements, also from a partial streamed string; manual after reload |
+| AC-27 | 16               | Component test: `<script>`, `<img onerror>` render as text, a `javascript:` link has no `href`; user message with `**x**` shows the asterisks |
+| AC-28 | 16               | Manual at 375 px with a wide table and a long code line |
 
 ## Rollout
 
@@ -293,7 +297,10 @@ as they are (the new tools are documented in `src/instructions.md`, not the lock
   as "No pull request" until one exists.
 - 11 renders question cards but the agent can't send any until 12 registers `ask_questions` and
   its instructions, so the app lands first. 13–14 register the task tools, which do nothing until
-  the user asks for implementation, and the skill that starts it (15) merges last.
+  the user asks for implementation, and the skill that starts it (15) merges last of the
+  implementation work.
+- 16 is independent of the rest: it changes only how agent messages are drawn in the chat, reuses
+  the existing renderer (no new dependency), and needs no API or agent change.
 - Before 05 is useful: give `API_GIT_TOKEN` Pull requests read and write on the project
   repositories. Without it PR calls answer `502`/`503` and nothing else breaks.
 - Release: remove `GITHUB_TOKEN`/`GITHUB_REPO` from `.env` if set only for the agent (01).
@@ -317,7 +324,9 @@ as they are (the new tools are documented in `src/instructions.md`, not the lock
 | 13 | [spec](tasks/13-agent-task-files/spec.md) | | not started |
 | 14 | [spec](tasks/14-agent-task-flow/spec.md) | | not started |
 | 15 | [spec](tasks/15-infra-implementation-skill/spec.md) | | not started |
+| 16 | [spec](tasks/16-app-chat-markdown/spec.md) | | not started |
 
 ## Changelog
 
 - 2026-11-09 — Created.
+- 2026-11-09 — Added task 16 (Markdown in the chat) for the new AC-26 to AC-28.
