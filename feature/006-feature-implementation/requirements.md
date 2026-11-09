@@ -1,7 +1,7 @@
 ---
 feature: 006-feature-implementation
-status: draft
-approved:
+status: approved
+approved: 2026-11-09
 ---
 
 # Feature Implementation
@@ -185,3 +185,4 @@ recommendations and approvals are typed by hand.
 - 2026-11-09 — Draft filled from the request; open questions listed.
 - 2026-11-09 — Open questions settled with the user (GIT_TOKEN with PR scope, polling, one task per
   turn, keep worktrees until done, no page controls); acceptance criteria written.
+- 2026-11-09 — Approved.
