@@ -1,7 +1,7 @@
 ---
 feature: 006-feature-implementation
-status: draft
-approved:
+status: approved
+approved: 2026-11-09
 ---
 
 # Feature Implementation: task breakdown
@@ -330,3 +330,4 @@ as they are (the new tools are documented in `src/instructions.md`, not the lock
 
 - 2026-11-09 — Created.
 - 2026-11-09 — Added task 16 (Markdown in the chat) for the new AC-26 to AC-28.
+- 2026-11-09 — Approved.
