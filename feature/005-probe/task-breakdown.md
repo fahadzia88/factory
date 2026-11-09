@@ -1,6 +1,6 @@
 ---
 feature: 005-probe
-status: approved
+status: in-progress
 approved: 2026-11-08
 ---
 
@@ -132,6 +132,7 @@ base file.
 
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
+| 00 | — | [#51](https://github.com/fahadzia88/factory/pull/51) | pr open |
 | 01 | [spec](tasks/01-api-feature-files/spec.md) | | not started |
 | 02 | [spec](tasks/02-api-feature-file-routes/spec.md) | | not started |
 | 03 | [spec](tasks/03-app-file-tree/spec.md) | | not started |
