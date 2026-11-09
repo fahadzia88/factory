@@ -9,6 +9,9 @@ import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.describe
+import com.toptier.custom.feature.exception.AgentUnavailableException
+import com.toptier.custom.feature.exception.BlankMessageException
+import com.toptier.custom.feature.exception.ChatBusyException
 import com.toptier.custom.feature.exception.FeatureException
 import com.toptier.custom.feature.exception.FeatureFileNotFoundException
 import com.toptier.custom.feature.exception.FeatureNotFoundException
@@ -63,6 +66,12 @@ class FeatureExceptionHandler {
 		is UnsupportedFileTypeException -> problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", ex.message!!)
 		is FileTooLargeException -> problem(HttpStatus.CONTENT_TOO_LARGE, "file_too_large", ex.message!!)
 		is WorktreeMissingException -> problem(HttpStatus.CONFLICT, "worktree_missing", ex.message!!)
+		is ChatBusyException -> problem(HttpStatus.CONFLICT, "chat_busy", ex.message!!)
+		is AgentUnavailableException -> {
+			log.info("Feature chat: {}", ex.message)
+			problem(HttpStatus.BAD_GATEWAY, "agent_unavailable", ex.message!!)
+		}
+		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 	}
 
 	/** Thrown by the checkout package while a feature is created. */

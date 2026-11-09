@@ -44,3 +44,13 @@ class FileTooLargeException : FeatureException("That file is larger than 200 KB.
 /** The feature's [branch] has no worktree, or its folder isn't on disk. */
 class WorktreeMissingException(val branch: String) :
 	FeatureException("The worktree for $branch is missing. Check it out again on the project page.")
+
+/** The feature's chat is still answering an earlier message. */
+class ChatBusyException :
+	FeatureException("The agent is still answering the previous message. Wait for it or stop it.")
+
+/** The agent couldn't be reached, rejected the API token, or answered with an error before streaming. */
+class AgentUnavailableException(message: String) : FeatureException(message)
+
+/** A chat message with no text. */
+class BlankMessageException : FeatureException("message is required")
