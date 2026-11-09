@@ -28,3 +28,19 @@ class InvalidStepException(message: String) : FeatureException(message)
 
 /** No step with that id in the feature. */
 class StepNotFoundException : FeatureException("Step not found.")
+
+/** A requested file path is malformed, names `.git`, or leads outside the feature's folder. */
+class InvalidFilePathException : FeatureException("That path isn't inside the feature's folder.")
+
+/** Nothing at the requested path in the feature's folder, or it's a folder. */
+class FeatureFileNotFoundException : FeatureException("That file doesn't exist.")
+
+/** The requested file isn't a markdown (`.md`) file. */
+class UnsupportedFileTypeException : FeatureException("Only markdown (.md) files can be opened.")
+
+/** The requested file is over the size limit for reading. */
+class FileTooLargeException : FeatureException("That file is larger than 200 KB.")
+
+/** The feature's [branch] has no worktree, or its folder isn't on disk. */
+class WorktreeMissingException(val branch: String) :
+	FeatureException("The worktree for $branch is missing. Check it out again on the project page.")
