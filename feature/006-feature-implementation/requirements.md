@@ -1,7 +1,7 @@
 ---
 feature: 006-feature-implementation
-status: draft
-approved:
+status: approved
+approved: 2026-11-09
 ---
 
 # Feature Implementation
@@ -206,3 +206,4 @@ recommendations and approvals are typed by hand.
   turn, keep worktrees until done, no page controls); acceptance criteria written.
 - 2026-11-09 — Approved.
 - 2026-11-09 — Back to draft: added Markdown in the chat (scope 4, AC-26 to AC-28).
+- 2026-11-09 — Approved again.
