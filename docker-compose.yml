@@ -27,10 +27,10 @@ services:
       # Read-only GitHub token (Metadata: read) for checking project repositories exist; blank skips the check.
       # Separate from the root .env's GITHUB_TOKEN, which can write.
       GITHUB_TOKEN: ${API_GITHUB_TOKEN:-}
-      # Git token for cloning, fetching and pushing project repositories (checkout package).
-      # Fine-grained, Contents: read and write on the project repositories. Separate from the
-      # read-only API_GITHUB_TOKEN above. Sent per git command as a header, never written to disk.
-      # Blank: checkout, fetch and push answer 503 git_not_configured.
+      # Fine-grained, Contents: read and write and Pull requests: read and write on the project
+      # repositories. Used for git (clone, fetch, push) and for opening, retargeting and reading
+      # pull requests. Separate from the read-only API_GITHUB_TOKEN above. Sent per git command as
+      # a header, never written to disk. Blank: checkout, fetch, push and pull requests answer 503.
       GIT_TOKEN: ${API_GIT_TOKEN:-}
     ports:
       - "8080:8080"
@@ -84,11 +84,6 @@ services:
       # Alternative to ANTHROPIC_API_KEY: a Claude subscription token from `claude setup-token` (sk-ant-oat01-…).
       # The SDK prefers ANTHROPIC_API_KEY when both are set, so leave that one empty to use this.
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
-      # Feature-workflow subagents: the pull request REST API only (open, list, comment, retarget;
-      # no gh CLI). Git doesn't use it: fetch and push go through the API's checkout routes.
-      # Fine-grained token for this repo only: Pull requests read and write.
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      GITHUB_REPO: ${GITHUB_REPO:-fahadzia88/factory}
       GIT_USER_NAME: ${GIT_USER_NAME:-factory agent}
       GIT_USER_EMAIL: ${GIT_USER_EMAIL:-factory-agent@users.noreply.github.com}
       # File change events from a macOS host don't reach the container through the bind mount
