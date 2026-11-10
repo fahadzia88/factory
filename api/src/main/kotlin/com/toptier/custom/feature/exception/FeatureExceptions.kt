@@ -57,3 +57,25 @@ class BlankMessageException : FeatureException("message is required")
 
 /** No task with that number in the feature. */
 class TaskNotFoundException : FeatureException("Task not found.")
+
+/** The task folder name isn't `NN-<layer>-<slug>`, or it has no `spec.md`. */
+class InvalidTaskException(message: String) : FeatureException(message)
+
+/** Some task specs aren't approved yet; [unapproved] are their paths. */
+class SpecsNotApprovedException(val unapproved: List<String>) :
+	FeatureException("Every task spec must be approved before implementation starts: ${unapproved.joinToString(", ")}.")
+
+/** The task was started already. */
+class TaskExistsException(number: Int) : FeatureException("Task %02d was started already.".format(number))
+
+/** Tasks start in stack order; [expected] is the next number. */
+class TaskOutOfOrderException(val expected: Int) :
+	FeatureException("Tasks start in order; the next one is %02d.".format(expected))
+
+/** The task below has no pull request yet. */
+class PreviousTaskUnfinishedException(number: Int) :
+	FeatureException("Task %02d has no pull request yet. Open it before starting the next task.".format(number))
+
+/** The feature's docs worktree isn't on disk. */
+class FeatureWorktreeMissingException(branch: String) :
+	FeatureException("The worktree for $branch is missing. Check it out again on the project page.")
