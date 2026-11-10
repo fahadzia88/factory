@@ -13,6 +13,7 @@ import com.toptier.custom.feature.exception.PreviousTaskUnfinishedException
 import com.toptier.custom.feature.exception.SpecsNotApprovedException
 import com.toptier.custom.feature.exception.TaskExistsException
 import com.toptier.custom.feature.exception.TaskOutOfOrderException
+import com.toptier.custom.feature.service.TaskPulls
 import com.toptier.custom.feature.service.TaskStarter
 import com.toptier.custom.feature.exception.TaskNotFoundException
 import com.toptier.custom.feature.service.FeatureTasks
@@ -53,6 +54,28 @@ class FeatureTaskControllerTests {
 
 	@MockitoBean
 	lateinit var taskStarter: TaskStarter
+
+	@MockitoBean
+	lateinit var taskPulls: TaskPulls
+
+	@Test
+	fun `opening a pull request answers 201 and maps its refusals`() {
+		given(taskPulls.open(12, 21, 1, "Task records", listOf("AC-3"))).willReturn(
+			TaskView(task(1, "feat/006-x/01-api-a", "feat/006-x/00-docs", pullNumber = 11), null, pull(11), null, false),
+		)
+		given(taskPulls.open(12, 21, 0, null, null)).willThrow(com.toptier.custom.feature.exception.PullExistsException(0))
+		given(taskPulls.open(12, 21, 2, "B", listOf("AC-1"))).willThrow(com.toptier.custom.feature.exception.TaskNotPushedException("feat/006-x/02-app-b"))
+		given(taskPulls.open(12, 21, 3, "", listOf("AC-1"))).willThrow(com.toptier.custom.feature.exception.InvalidFeatureRequestException("task must be 1 to 100 characters."))
+
+		mockMvc.post("$BASE/1/pull") { json("""{"task":"Task records","acs":["AC-3"]}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/1/pull") { auth(); json("""{"task":"Task records","acs":["AC-3"]}""") }.andExpect {
+			status { isCreated() }
+			jsonPath("$.pull.number") { value(11) }
+		}
+		mockMvc.post("$BASE/0/pull") { auth() }.andExpect { problem(409, "pull_exists") }
+		mockMvc.post("$BASE/2/pull") { auth(); json("""{"task":"B","acs":["AC-1"]}""") }.andExpect { problem(409, "task_not_pushed") }
+		mockMvc.post("$BASE/3/pull") { auth(); json("""{"task":"","acs":["AC-1"]}""") }.andExpect { problem(400, "invalid_request") }
+	}
 
 	@Test
 	fun `rejects requests without a token`() {

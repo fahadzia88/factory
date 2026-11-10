@@ -79,3 +79,12 @@ class PreviousTaskUnfinishedException(number: Int) :
 /** The feature's docs worktree isn't on disk. */
 class FeatureWorktreeMissingException(branch: String) :
 	FeatureException("The worktree for $branch is missing. Check it out again on the project page.")
+
+/** The task already has a pull request. */
+class PullExistsException(number: Int) : FeatureException("Task %02d already has a pull request.".format(number))
+
+/** The task's branch isn't on GitHub yet. */
+class TaskNotPushedException(branch: String) : FeatureException("Push $branch before opening its pull request.")
+
+/** A request body field is missing or invalid; the message names it. */
+class InvalidFeatureRequestException(message: String) : FeatureException(message)
