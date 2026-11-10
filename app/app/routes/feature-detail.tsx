@@ -1,5 +1,8 @@
+import { BotIcon, FileTextIcon } from "lucide-react"
+import { useState } from "react"
 import { Link, useRevalidator } from "react-router"
 
+import { DocumentsTab } from "~/components/features/documents-tab"
 import { FeatureChat } from "~/components/features/feature-chat"
 import { FeatureNotFound } from "~/components/features/feature-not-found"
 import { FeatureStatusBadge } from "~/components/features/feature-status-badge"
@@ -11,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Spinner } from "~/components/ui/spinner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { ApiError } from "~/lib/api"
 import {
   featureError,
@@ -97,6 +101,7 @@ export function HydrateFallback() {
 
 export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
   const revalidator = useRevalidator()
+  const [turns, setTurns] = useState(0)
   const { projectId, project, feature, notFound, error } = loaderData
 
   if (notFound) return <FeatureNotFound projectId={projectId} />
@@ -151,12 +156,35 @@ export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      <FeatureChat
-        key={feature.id}
-        projectId={feature.projectId}
-        featureId={feature.id}
-        onTurnEnd={() => revalidator.revalidate()}
-      />
+      <Tabs defaultValue="agent" key={feature.id}>
+        <TabsList className="w-fit">
+          <TabsTrigger value="agent">
+            <BotIcon />
+            Agent
+          </TabsTrigger>
+          <TabsTrigger value="documents">
+            <FileTextIcon />
+            Documents
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="agent" keepMounted className="min-w-0">
+          <FeatureChat
+            projectId={feature.projectId}
+            featureId={feature.id}
+            onTurnEnd={() => {
+              revalidator.revalidate()
+              setTurns((n) => n + 1)
+            }}
+          />
+        </TabsContent>
+        <TabsContent value="documents" keepMounted className="min-w-0">
+          <DocumentsTab
+            projectId={feature.projectId}
+            featureId={feature.id}
+            refreshKey={turns}
+          />
+        </TabsContent>
+      </Tabs>
     </>
   )
 }
