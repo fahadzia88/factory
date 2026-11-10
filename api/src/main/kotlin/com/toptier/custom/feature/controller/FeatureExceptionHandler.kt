@@ -23,9 +23,12 @@ import com.toptier.custom.feature.exception.InvalidStatusException
 import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
+import com.toptier.custom.feature.exception.TaskNotFoundException
 import com.toptier.custom.feature.exception.UnsupportedFileTypeException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
 import com.toptier.custom.feature.exception.WorktreeMissingException
+import com.toptier.custom.feature.service.PullProblems
+import com.toptier.custom.github.exception.GitHubException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -71,7 +74,16 @@ class FeatureExceptionHandler {
 			log.info("Feature chat: {}", ex.message)
 			problem(HttpStatus.BAD_GATEWAY, "agent_unavailable", ex.message!!)
 		}
+		is TaskNotFoundException -> problem(HttpStatus.NOT_FOUND, "task_not_found", ex.message!!)
 		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
+	}
+
+	/** A feature pull request call that GitHub didn't answer usefully. */
+	@ExceptionHandler(GitHubException::class)
+	fun handleGitHub(ex: GitHubException): ProblemDetail {
+		log.info("Feature pull request call failed: {}", ex.message)
+		val described = PullProblems.describe(ex)
+		return problem(described.status, described.code, described.detail)
 	}
 
 	/** Thrown by the checkout package while a feature is created. */
