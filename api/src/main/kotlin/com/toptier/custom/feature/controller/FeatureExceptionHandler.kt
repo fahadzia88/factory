@@ -24,6 +24,9 @@ import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.TaskNotFoundException
+import com.toptier.custom.feature.exception.PullExistsException
+import com.toptier.custom.feature.exception.TaskNotPushedException
+import com.toptier.custom.feature.exception.InvalidFeatureRequestException
 import com.toptier.custom.feature.exception.InvalidTaskException
 import com.toptier.custom.feature.exception.SpecsNotApprovedException
 import com.toptier.custom.feature.exception.TaskExistsException
@@ -88,6 +91,9 @@ class FeatureExceptionHandler {
 			.apply { setProperty("expected", ex.expected) }
 		is PreviousTaskUnfinishedException -> problem(HttpStatus.CONFLICT, "previous_task_unfinished", ex.message!!)
 		is FeatureWorktreeMissingException -> problem(HttpStatus.CONFLICT, "worktree_missing", ex.message!!)
+		is PullExistsException -> problem(HttpStatus.CONFLICT, "pull_exists", ex.message!!)
+		is TaskNotPushedException -> problem(HttpStatus.CONFLICT, "task_not_pushed", ex.message!!)
+		is InvalidFeatureRequestException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 		is TaskNotFoundException -> problem(HttpStatus.NOT_FOUND, "task_not_found", ex.message!!)
 		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 	}

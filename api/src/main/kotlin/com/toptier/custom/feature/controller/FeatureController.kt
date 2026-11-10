@@ -7,7 +7,7 @@ import com.toptier.custom.feature.dto.FeatureStepResponse
 import com.toptier.custom.feature.dto.FeatureSummaryResponse
 import com.toptier.custom.feature.dto.SetStatusRequest
 import com.toptier.custom.feature.dto.UpdateStepRequest
-import com.toptier.custom.feature.service.FeatureCreator
+import com.toptier.custom.feature.service.FeatureStarter
 import com.toptier.custom.feature.service.FeatureProgress
 import com.toptier.custom.feature.service.FeatureService
 import com.toptier.custom.feature.service.StepChanges
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/projects/{id}/features")
 class FeatureController(
 	private val featureService: FeatureService,
-	private val featureCreator: FeatureCreator,
+	private val featureStarter: FeatureStarter,
 	private val featureProgress: FeatureProgress,
 ) {
 
@@ -41,10 +41,12 @@ class FeatureController(
 	fun get(@PathVariable id: Long, @PathVariable featureId: Long): FeatureResponse =
 		FeatureResponse.from(featureService.get(id, featureId))
 
-	/** Starts a feature: worktree, `requirements.md` from the template, commit, push, record. */
+	/** Starts a feature: worktree, `requirements.md` from the template, commit, push, record, then the docs pull request. */
 	@PostMapping
 	fun create(@PathVariable id: Long, @RequestBody request: CreateFeatureRequest): ResponseEntity<FeatureResponse> =
-		ResponseEntity.status(HttpStatus.CREATED).body(FeatureResponse.from(featureCreator.create(id, request.name)))
+		featureStarter.start(id, request.name).let { started ->
+			ResponseEntity.status(HttpStatus.CREATED).body(FeatureResponse.from(started.view).copy(docsPullError = started.docsPullError))
+		}
 
 	/** Sets the feature's status to one of its workflow's states. */
 	@PutMapping("/{featureId}/status")
