@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 05-api-task-pull
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/05-api-task-pull
 base: feat/006-feature-implementation/04-api-task-start
 covers: [AC-7, AC-13, AC-14, AC-16, AC-18]

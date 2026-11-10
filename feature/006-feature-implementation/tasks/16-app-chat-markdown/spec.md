@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 16-app-chat-markdown
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/16-app-chat-markdown
 base: feat/006-feature-implementation/15-infra-implementation-skill
 covers: [AC-26, AC-27, AC-28]

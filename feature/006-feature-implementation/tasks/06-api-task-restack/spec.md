@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 06-api-task-restack
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/06-api-task-restack
 base: feat/006-feature-implementation/05-api-task-pull
 covers: [AC-8, AC-9, AC-18]

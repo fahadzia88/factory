@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 12-agent-ask-questions
 layer: agent
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/12-agent-ask-questions
 base: feat/006-feature-implementation/11-app-question-cards
 covers: [AC-19, AC-24]

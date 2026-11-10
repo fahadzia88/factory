@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 13-agent-task-files
 layer: agent
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/13-agent-task-files
 base: feat/006-feature-implementation/12-agent-ask-questions
 covers: [AC-5, AC-6]

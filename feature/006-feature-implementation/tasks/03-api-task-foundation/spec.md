@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 03-api-task-foundation
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/03-api-task-foundation
 base: feat/006-feature-implementation/02-api-github-pull-client
 covers: [AC-15, AC-17, AC-18]

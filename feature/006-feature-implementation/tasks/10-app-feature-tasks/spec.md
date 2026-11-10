@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 10-app-feature-tasks
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/10-app-feature-tasks
 base: feat/006-feature-implementation/09-api-question-chat
 covers: [AC-13, AC-17, AC-25]

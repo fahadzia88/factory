@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 04-api-task-start
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/04-api-task-start
 base: feat/006-feature-implementation/03-api-task-foundation
 covers: [AC-2, AC-3, AC-4, AC-18]

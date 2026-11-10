@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 01-infra-drop-agent-github-token
 layer: infra
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/01-infra-drop-agent-github-token
 base: feat/006-feature-implementation/00-docs
 covers: [AC-12]

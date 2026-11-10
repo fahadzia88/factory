@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 11-app-question-cards
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/11-app-question-cards
 base: feat/006-feature-implementation/10-app-feature-tasks
 covers: [AC-19, AC-20, AC-21, AC-22, AC-23, AC-24, AC-25]

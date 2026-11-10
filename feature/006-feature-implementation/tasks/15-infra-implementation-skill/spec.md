@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 15-infra-implementation-skill
 layer: infra
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/15-infra-implementation-skill
 base: feat/006-feature-implementation/14-agent-task-flow
 covers: [AC-1, AC-2, AC-3, AC-7, AC-11, AC-15]

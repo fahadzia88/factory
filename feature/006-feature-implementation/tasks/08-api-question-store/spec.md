@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 08-api-question-store
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/08-api-question-store
 base: feat/006-feature-implementation/07-api-feature-complete
 covers: [AC-18, AC-19]

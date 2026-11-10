@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 14-agent-task-flow
 layer: agent
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/14-agent-task-flow
 base: feat/006-feature-implementation/13-agent-task-files
 covers: [AC-2, AC-3, AC-4, AC-7, AC-8, AC-10, AC-11, AC-15, AC-16]

@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 09-api-question-chat
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/09-api-question-chat
 base: feat/006-feature-implementation/08-api-question-store
 covers: [AC-19, AC-21, AC-22, AC-23]

@@ -2,8 +2,8 @@
 feature: 006-feature-implementation
 task: 02-api-github-pull-client
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-10
 branch: feat/006-feature-implementation/02-api-github-pull-client
 base: feat/006-feature-implementation/01-infra-drop-agent-github-token
 covers: [AC-13, AC-14, AC-15, AC-16]
