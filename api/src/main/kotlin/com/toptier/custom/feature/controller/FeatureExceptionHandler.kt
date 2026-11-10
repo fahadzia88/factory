@@ -13,14 +13,19 @@ import com.toptier.custom.feature.exception.AgentUnavailableException
 import com.toptier.custom.feature.exception.BlankMessageException
 import com.toptier.custom.feature.exception.ChatBusyException
 import com.toptier.custom.feature.exception.FeatureException
+import com.toptier.custom.feature.exception.FeatureFileNotFoundException
 import com.toptier.custom.feature.exception.FeatureNotFoundException
 import com.toptier.custom.feature.exception.FeatureProjectArchivedException
+import com.toptier.custom.feature.exception.FileTooLargeException
 import com.toptier.custom.feature.exception.InvalidFeatureNameException
+import com.toptier.custom.feature.exception.InvalidFilePathException
 import com.toptier.custom.feature.exception.InvalidStatusException
 import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
+import com.toptier.custom.feature.exception.UnsupportedFileTypeException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
+import com.toptier.custom.feature.exception.WorktreeMissingException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -56,6 +61,11 @@ class FeatureExceptionHandler {
 			.apply { setProperty("allowed", ex.allowed) }
 		is InvalidStepException -> problem(HttpStatus.BAD_REQUEST, "invalid_step", ex.message!!)
 		is StepNotFoundException -> problem(HttpStatus.NOT_FOUND, "step_not_found", ex.message!!)
+		is InvalidFilePathException -> problem(HttpStatus.BAD_REQUEST, "invalid_path", ex.message!!)
+		is FeatureFileNotFoundException -> problem(HttpStatus.NOT_FOUND, "file_not_found", ex.message!!)
+		is UnsupportedFileTypeException -> problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", ex.message!!)
+		is FileTooLargeException -> problem(HttpStatus.CONTENT_TOO_LARGE, "file_too_large", ex.message!!)
+		is WorktreeMissingException -> problem(HttpStatus.CONFLICT, "worktree_missing", ex.message!!)
 		is ChatBusyException -> problem(HttpStatus.CONFLICT, "chat_busy", ex.message!!)
 		is AgentUnavailableException -> {
 			log.info("Feature chat: {}", ex.message)
