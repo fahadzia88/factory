@@ -24,6 +24,12 @@ import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.TaskNotFoundException
+import com.toptier.custom.feature.exception.InvalidTaskException
+import com.toptier.custom.feature.exception.SpecsNotApprovedException
+import com.toptier.custom.feature.exception.TaskExistsException
+import com.toptier.custom.feature.exception.TaskOutOfOrderException
+import com.toptier.custom.feature.exception.PreviousTaskUnfinishedException
+import com.toptier.custom.feature.exception.FeatureWorktreeMissingException
 import com.toptier.custom.feature.exception.UnsupportedFileTypeException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
 import com.toptier.custom.feature.exception.WorktreeMissingException
@@ -74,6 +80,14 @@ class FeatureExceptionHandler {
 			log.info("Feature chat: {}", ex.message)
 			problem(HttpStatus.BAD_GATEWAY, "agent_unavailable", ex.message!!)
 		}
+		is InvalidTaskException -> problem(HttpStatus.BAD_REQUEST, "invalid_task", ex.message!!)
+		is SpecsNotApprovedException -> problem(HttpStatus.CONFLICT, "specs_not_approved", ex.message!!)
+			.apply { setProperty("unapproved", ex.unapproved) }
+		is TaskExistsException -> problem(HttpStatus.CONFLICT, "task_exists", ex.message!!)
+		is TaskOutOfOrderException -> problem(HttpStatus.CONFLICT, "task_out_of_order", ex.message!!)
+			.apply { setProperty("expected", ex.expected) }
+		is PreviousTaskUnfinishedException -> problem(HttpStatus.CONFLICT, "previous_task_unfinished", ex.message!!)
+		is FeatureWorktreeMissingException -> problem(HttpStatus.CONFLICT, "worktree_missing", ex.message!!)
 		is TaskNotFoundException -> problem(HttpStatus.NOT_FOUND, "task_not_found", ex.message!!)
 		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 	}
