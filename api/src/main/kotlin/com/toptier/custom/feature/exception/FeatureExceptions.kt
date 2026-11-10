@@ -54,3 +54,6 @@ class AgentUnavailableException(message: String) : FeatureException(message)
 
 /** A chat message with no text. */
 class BlankMessageException : FeatureException("message is required")
+
+/** No task with that number in the feature. */
+class TaskNotFoundException : FeatureException("Task not found.")
