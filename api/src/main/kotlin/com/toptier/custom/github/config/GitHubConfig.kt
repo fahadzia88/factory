@@ -1,5 +1,6 @@
 package com.toptier.custom.github.config
 
+import com.toptier.custom.checkout.config.GitProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
@@ -14,9 +15,17 @@ class GitHubConfig {
 	fun gitHubRestClient(builder: RestClient.Builder, gitHubProperties: GitHubProperties): RestClient =
 		configure(builder, gitHubProperties).build()
 
+	/** Opens, retargets and reads pull requests with the git token (`app.git.token`), which can write to project repositories. */
+	@Bean
+	fun gitHubWriteRestClient(
+		builder: RestClient.Builder,
+		gitHubProperties: GitHubProperties,
+		gitProperties: GitProperties,
+	): RestClient = configure(builder, gitHubProperties, gitProperties.token).build()
+
 	companion object {
 		/** Applies the GitHub base URL, headers and timeouts; shared with tests so they bind the same setup. */
-		fun configure(builder: RestClient.Builder, props: GitHubProperties): RestClient.Builder {
+		fun configure(builder: RestClient.Builder, props: GitHubProperties, token: String = props.token): RestClient.Builder {
 			builder
 				.baseUrl(props.baseUrl)
 				.defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
@@ -27,7 +36,7 @@ class GitHubConfig {
 						setReadTimeout(props.timeout)
 					},
 				)
-			if (props.token.isNotBlank()) builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer ${props.token}")
+			if (token.isNotBlank()) builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $token")
 			return builder
 		}
 	}

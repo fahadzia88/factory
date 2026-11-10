@@ -7,7 +7,7 @@ import java.time.Duration
 /** Settings for the project checkouts the API clones and manages with CLI git. */
 @ConfigurationProperties(prefix = "app.git")
 data class GitProperties(
-	/** Contents read+write token. Sent as `http.https://github.com/.extraheader` through `GIT_CONFIG_*` env per command; never on disk. */
+	/** Contents and Pull requests read+write token; also opens, retargets and reads pull requests. Sent as `http.https://github.com/.extraheader` through `GIT_CONFIG_*` env per command; never on disk. */
 	val token: String = "",
 	/** The shared volume with the checkouts; the agent mounts it at the same path. */
 	val root: String = "/repos",
