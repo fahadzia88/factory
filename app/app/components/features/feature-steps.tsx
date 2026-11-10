@@ -1,6 +1,7 @@
 import { ListTodoIcon } from "lucide-react"
 
 import { StepStatusBadge } from "~/components/features/feature-status-badge"
+import { Badge } from "~/components/ui/badge"
 import {
   Empty,
   EmptyDescription,
@@ -34,27 +35,21 @@ export function FeatureSteps({ steps }: { steps: FeatureStep[] }) {
       {ordered.map((step) => (
         <li
           key={step.id}
-          className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
+          className="flex min-w-0 flex-col gap-1.5 py-3 first:pt-0 last:pb-0"
         >
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-sm font-medium break-words">
-              {step.title}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {step.typeTitle}
-            </span>
-            {step.documentPath && (
-              <span className="font-mono text-xs break-all text-muted-foreground">
-                {step.documentPath}
-              </span>
-            )}
-          </div>
-          <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+          <span className="text-sm font-medium break-words">{step.title}</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="secondary">{step.typeTitle}</Badge>
             <StepStatusBadge step={step} />
-            <span className="text-xs text-muted-foreground">
-              Updated {formatDateTime(step.updatedAt)}
-            </span>
           </div>
+          {step.documentPath && (
+            <span className="font-mono text-xs break-all text-muted-foreground">
+              {step.documentPath}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            Updated {formatDateTime(step.updatedAt)}
+          </span>
         </li>
       ))}
     </ul>

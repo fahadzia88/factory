@@ -2,6 +2,9 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   ExternalLinkIcon,
+  FolderGit2Icon,
+  GitPullRequestIcon,
+  LayersIcon,
   PencilIcon,
   RefreshCwIcon,
   TriangleAlertIcon,
@@ -12,6 +15,7 @@ import { toast } from "sonner"
 
 import { CheckoutCard } from "~/components/checkouts/checkout-card"
 import { FeaturesCard } from "~/components/features/features-card"
+import { WorkflowMindMapDialog } from "~/components/features/workflow-mind-map"
 import { UnsavedWorkList } from "~/components/checkouts/unsaved-work-list"
 import { PageHeader } from "~/components/page-header"
 import {
@@ -38,6 +42,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { ApiError, apiErrorMessage } from "~/lib/api"
 import {
   checkoutError,
@@ -146,6 +151,7 @@ export default function ProjectDetail({
           </span>
         }
       >
+        {!project.archived && <WorkflowMindMapDialog projectId={project.id} />}
         {project.archived ? (
           <RestoreButton />
         ) : (
@@ -178,13 +184,39 @@ export default function ProjectDetail({
         </Alert>
       )}
 
-      <ProjectDetails project={project} />
-      <FeaturesCard projectId={project.id} archived={project.archived} />
-      <PullRequestsCard
-        projectId={project.id}
-        repositoryUrl={project.repositoryUrl}
-      />
-      <CheckoutCard projectId={project.id} archived={project.archived} />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <aside aria-label="Project details" className="min-w-0">
+          <ProjectDetails project={project} />
+        </aside>
+        <Tabs defaultValue="features" key={project.id} className="min-w-0">
+          <TabsList className="w-fit max-w-full overflow-x-auto">
+            <TabsTrigger value="features">
+              <LayersIcon />
+              Features
+            </TabsTrigger>
+            <TabsTrigger value="pull-requests">
+              <GitPullRequestIcon />
+              Pull requests
+            </TabsTrigger>
+            <TabsTrigger value="worktrees">
+              <FolderGit2Icon />
+              Worktrees
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="features" className="min-w-0">
+            <FeaturesCard projectId={project.id} archived={project.archived} />
+          </TabsContent>
+          <TabsContent value="pull-requests" className="min-w-0">
+            <PullRequestsCard
+              projectId={project.id}
+              repositoryUrl={project.repositoryUrl}
+            />
+          </TabsContent>
+          <TabsContent value="worktrees" className="min-w-0">
+            <CheckoutCard projectId={project.id} archived={project.archived} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </>
   )
 }
@@ -339,8 +371,8 @@ function ProjectDetails({ project }: { project: Project }) {
   return (
     <Card>
       <CardContent>
-        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-          <div className="flex min-w-0 flex-col gap-1 sm:col-span-2">
+        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <dt className="text-sm text-muted-foreground">Repository</dt>
             <dd className="flex flex-wrap items-center gap-2">
               <a
@@ -369,7 +401,7 @@ function ProjectDetails({ project }: { project: Project }) {
             <dt className="text-sm text-muted-foreground">Status</dt>
             <dd>{STATUS_LABEL[project.status]}</dd>
           </div>
-          <div className="flex flex-col gap-1 sm:col-span-2">
+          <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <dt className="text-sm text-muted-foreground">Description</dt>
             <dd className="whitespace-pre-wrap">
               {project.description ?? (

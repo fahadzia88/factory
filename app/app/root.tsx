@@ -27,7 +27,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Toggles the .dark class app.css styles against, following the OS; the toaster reads it too */}
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >

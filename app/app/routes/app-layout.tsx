@@ -46,7 +46,7 @@ export default function AppLayout() {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
+        <div className="mx-auto flex h-14 w-full items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <Link
             to="/dashboard"
             className="flex items-center gap-2 font-heading font-medium"
@@ -95,7 +95,7 @@ export default function AppLayout() {
           aria-hidden
         />
       </header>
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
+      <main className="mx-auto flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
         <Outlet />
       </main>
     </div>
