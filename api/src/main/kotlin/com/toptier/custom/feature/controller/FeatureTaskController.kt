@@ -1,8 +1,10 @@
 package com.toptier.custom.feature.controller
 
+import com.toptier.custom.feature.dto.OpenPullRequest
 import com.toptier.custom.feature.dto.StartTaskRequest
 import com.toptier.custom.feature.dto.TaskResponse
 import com.toptier.custom.feature.service.FeatureTasks
+import com.toptier.custom.feature.service.TaskPulls
 import com.toptier.custom.feature.service.TaskStarter
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 class FeatureTaskController(
 	private val featureTasks: FeatureTasks,
 	private val taskStarter: TaskStarter,
+	private val taskPulls: TaskPulls,
 ) {
 
 	/** Every task, row 0 (the docs branch) first. */
@@ -35,4 +38,14 @@ class FeatureTaskController(
 	@PostMapping
 	fun start(@PathVariable id: Long, @PathVariable featureId: Long, @RequestBody request: StartTaskRequest): ResponseEntity<TaskResponse> =
 		ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(taskStarter.start(id, featureId, request.dir)))
+
+	/** Opens task [n]'s pull request; row 0 (the docs branch) takes no body. */
+	@PostMapping("/{n}/pull")
+	fun openPull(
+		@PathVariable id: Long,
+		@PathVariable featureId: Long,
+		@PathVariable n: Int,
+		@RequestBody(required = false) request: OpenPullRequest?,
+	): ResponseEntity<TaskResponse> =
+		ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(taskPulls.open(id, featureId, n, request?.task, request?.acs)))
 }
