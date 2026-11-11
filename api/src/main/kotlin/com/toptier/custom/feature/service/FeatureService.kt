@@ -48,9 +48,12 @@ class FeatureService(
 	)
 
 	/** The worktree of the feature's branch in a ready checkout, or null when there's none. */
-	private fun worktreeOf(feature: Feature): FeatureWorktree? {
-		val checkout = checkouts.findByProjectId(feature.projectId)?.takeIf { it.state == CheckoutState.READY } ?: return null
-		val row = worktrees.findByCheckoutIdAndBranch(checkout.id!!, feature.branch) ?: return null
+	private fun worktreeOf(feature: Feature): FeatureWorktree? = worktreeForBranch(feature.projectId, feature.branch)
+
+	/** The worktree of [branch] in the project's ready checkout, or null when there's none. */
+	fun worktreeForBranch(projectId: Long, branch: String): FeatureWorktree? {
+		val checkout = checkouts.findByProjectId(projectId)?.takeIf { it.state == CheckoutState.READY } ?: return null
+		val row = worktrees.findByCheckoutIdAndBranch(checkout.id!!, branch) ?: return null
 		return FeatureWorktree(row.id!!, row.path, inspector.missing(Path.of(row.path)))
 	}
 }

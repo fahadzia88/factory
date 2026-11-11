@@ -13,6 +13,12 @@ import java.time.Instant
 /** Body of `POST /api/projects/{id}/features`. */
 data class CreateFeatureRequest(val name: String? = null)
 
+/** Body of `POST …/tasks/{n}/pull`: the task's name and the ACs it covers; none for row 0. */
+data class OpenPullRequest(val task: String? = null, val acs: List<String>? = null)
+
+/** Body of `POST …/features/{featureId}/tasks`: the task's folder name in `tasks/`. */
+data class StartTaskRequest(val dir: String? = null)
+
 /** Body of `PUT …/features/{featureId}/status`. */
 data class SetStatusRequest(val status: String? = null)
 
@@ -54,6 +60,8 @@ data class FeatureResponse(
 	val steps: List<FeatureStepResponse>,
 	val createdAt: Instant,
 	val updatedAt: Instant,
+	/** Set only by create, when the docs pull request couldn't be opened: why. */
+	val docsPullError: String? = null,
 ) {
 	companion object {
 		fun from(view: FeatureView): FeatureResponse {
