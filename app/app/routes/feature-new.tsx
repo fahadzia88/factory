@@ -1,7 +1,8 @@
+import { useEffect } from "react"
 import {
   Form,
   Link,
-  redirect,
+  useNavigate,
   useNavigation,
   useRevalidator,
 } from "react-router"
@@ -81,6 +82,8 @@ type ActionData = {
   formError?: string
   retryable?: boolean
   code?: string | null
+  /** The new feature, once created; the page then navigates to it */
+  created?: { id: number; docsPullError: string | null }
 }
 
 export async function clientAction({
@@ -95,7 +98,11 @@ export async function clientAction({
   try {
     const feature = await createFeature(id, name)
     toast.success("Feature created")
-    return redirect(`/projects/${id}/features/${feature.id}`)
+    // A redirect can't carry state, so the component navigates once it sees the created feature
+    return {
+      values: { name },
+      created: { id: feature.id, docsPullError: feature.docsPullError ?? null },
+    }
   } catch (error) {
     const problem = featureError(error)
     if (problem.code === "invalid_name") {
@@ -115,6 +122,20 @@ export default function NewFeature({
   actionData,
 }: Route.ComponentProps) {
   const navigation = useNavigation()
+  const navigate = useNavigate()
+  const created = (actionData as ActionData | undefined)?.created
+  const projectIdParam =
+    loaderData.notFound || loaderData.error !== null
+      ? null
+      : loaderData.project.id
+
+  useEffect(() => {
+    if (!created || projectIdParam === null) return
+    navigate(`/projects/${projectIdParam}/features/${created.id}`, {
+      replace: true,
+      state: { docsPullError: created.docsPullError },
+    })
+  }, [created, projectIdParam, navigate])
   const revalidator = useRevalidator()
   const submitting = navigation.state === "submitting"
 
