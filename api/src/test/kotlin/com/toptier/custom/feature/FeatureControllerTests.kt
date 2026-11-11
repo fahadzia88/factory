@@ -20,7 +20,11 @@ import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
-import com.toptier.custom.feature.service.FeatureCreator
+import com.toptier.custom.feature.service.CompletedFeature
+import com.toptier.custom.feature.service.FeatureCompleter
+import com.toptier.custom.feature.service.FeatureStarter
+import com.toptier.custom.feature.service.KeptWorktree
+import com.toptier.custom.feature.service.StartedFeature
 import com.toptier.custom.feature.service.FeatureProgress
 import com.toptier.custom.feature.service.StepChanges
 import com.toptier.custom.feature.service.FeatureService
@@ -64,7 +68,30 @@ class FeatureControllerTests {
 	lateinit var featureService: FeatureService
 
 	@MockitoBean
-	lateinit var featureCreator: FeatureCreator
+	lateinit var featureStarter: FeatureStarter
+
+	@MockitoBean
+	lateinit var featureCompleter: FeatureCompleter
+
+	@Test
+	fun `complete answers the feature with kept worktrees, or what's unfinished`() {
+		given(featureCompleter.complete(12, 21)).willReturn(CompletedFeature(view(null), listOf(KeptWorktree("feat/004-features/02-app-b", "busy"))))
+		given(featureCompleter.complete(12, 22)).willThrow(
+			com.toptier.custom.feature.exception.TasksUnfinishedException(listOf(com.toptier.custom.feature.exception.UnfinishedTask(2, "pull request not merged (open)"))),
+		)
+
+		mockMvc.post("$BASE/21/complete").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/complete") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.keptWorktrees[0].branch") { value("feat/004-features/02-app-b") }
+			jsonPath("$.keptWorktrees[0].reason") { value("busy") }
+		}
+		mockMvc.post("$BASE/22/complete") { auth() }.andExpect {
+			problem(409, "tasks_unfinished")
+			jsonPath("$.unfinished[0].task") { value(2) }
+			jsonPath("$.unfinished[0].reason") { value("pull request not merged (open)") }
+		}
+	}
 
 	@MockitoBean
 	lateinit var featureProgress: FeatureProgress
@@ -148,7 +175,7 @@ class FeatureControllerTests {
 
 	@Test
 	fun `create answers 201 with the feature`() {
-		given(featureCreator.create(12, "Features")).willReturn(view(null))
+		given(featureStarter.start(12, "Features")).willReturn(StartedFeature(view(null), null))
 
 		mockMvc.post(BASE).andExpect { status { isUnauthorized() } }
 		mockMvc.post(BASE) { auth(); json("""{"name":"Features"}""") }.andExpect {
@@ -160,13 +187,24 @@ class FeatureControllerTests {
 	}
 
 	@Test
+	fun `a failed docs pull request is reported with the created feature`() {
+		given(featureStarter.start(12, "Features")).willReturn(StartedFeature(view(null), "GitHub couldn't be reached. Try again."))
+
+		mockMvc.post(BASE) { auth(); json("""{"name":"Features"}""") }.andExpect {
+			status { isCreated() }
+			jsonPath("$.id") { value(21) }
+			jsonPath("$.docsPullError") { value("GitHub couldn't be reached. Try again.") }
+		}
+	}
+
+	@Test
 	fun `create refusals map to 400 and 409`() {
-		given(featureCreator.create(12, "")).willThrow(InvalidFeatureNameException("Enter a name."))
-		given(featureCreator.create(12, "w")).willThrow(WorkflowInvalidException("feature/workflow.json: the file is missing."))
-		given(featureCreator.create(12, "a")).willThrow(FeatureProjectArchivedException())
-		given(featureCreator.create(12, "c")).willThrow(CheckoutProjectArchivedException(12))
-		given(featureCreator.create(12, "n")).willThrow(CheckoutNotReadyException())
-		given(featureCreator.create(12, "m")).willThrow(CheckoutNotFoundException())
+		given(featureStarter.start(12, "")).willThrow(InvalidFeatureNameException("Enter a name."))
+		given(featureStarter.start(12, "w")).willThrow(WorkflowInvalidException("feature/workflow.json: the file is missing."))
+		given(featureStarter.start(12, "a")).willThrow(FeatureProjectArchivedException())
+		given(featureStarter.start(12, "c")).willThrow(CheckoutProjectArchivedException(12))
+		given(featureStarter.start(12, "n")).willThrow(CheckoutNotReadyException())
+		given(featureStarter.start(12, "m")).willThrow(CheckoutNotFoundException())
 
 		mockMvc.post(BASE) { auth(); json("""{"name":""}""") }.andExpect {
 			problem(400, "invalid_name", "Enter a name.")
@@ -184,10 +222,10 @@ class FeatureControllerTests {
 
 	@Test
 	fun `create git failures map to 502, 503, 504 and 500`() {
-		given(featureCreator.create(12, "r")).willThrow(GitRemoteException(GitFailure.UNREACHABLE))
-		given(featureCreator.create(12, "n")).willThrow(GitNotConfiguredException())
-		given(featureCreator.create(12, "t")).willThrow(GitTimeoutException(Duration.ofMinutes(2)))
-		given(featureCreator.create(12, "e")).willThrow(GitCommandException("git commit", 1, "secret stderr"))
+		given(featureStarter.start(12, "r")).willThrow(GitRemoteException(GitFailure.UNREACHABLE))
+		given(featureStarter.start(12, "n")).willThrow(GitNotConfiguredException())
+		given(featureStarter.start(12, "t")).willThrow(GitTimeoutException(Duration.ofMinutes(2)))
+		given(featureStarter.start(12, "e")).willThrow(GitCommandException("git commit", 1, "secret stderr"))
 
 		mockMvc.post(BASE) { auth(); json("""{"name":"r"}""") }.andExpect { problem(502, "git_remote_error") }
 		mockMvc.post(BASE) { auth(); json("""{"name":"n"}""") }.andExpect { problem(503, "git_not_configured") }

@@ -3,12 +3,15 @@ export class ApiError extends Error {
   readonly status: number;
   /** The ProblemDetail's `code` (e.g. `checkout_not_found`), when the API sent one. */
   readonly code?: string;
+  /** The problem's other properties (e.g. `unapproved`, `unfinished`, `files`), without the standard ones. */
+  readonly extras?: Record<string, unknown>;
 
-  constructor(status: number, message: string, code?: string) {
+  constructor(status: number, message: string, code?: string, extras?: Record<string, unknown>) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     if (code !== undefined) this.code = code;
+    if (extras !== undefined && Object.keys(extras).length > 0) this.extras = extras;
   }
 }
 
@@ -72,20 +75,23 @@ async function request<T>(
   const text = await response.text();
   if (!response.ok) {
     const problem = parseProblem(text);
-    throw new ApiError(response.status, problem.detail ?? `API request failed (${response.status})`, problem.code);
+    throw new ApiError(response.status, problem.detail ?? `API request failed (${response.status})`, problem.code, problem.extras);
   }
   if (!text) return undefined as T;
   return JSON.parse(text) as T;
 }
 
-/** The `detail` and `code` of a ProblemDetail body, when the body is one. */
-function parseProblem(text: string): { detail?: string; code?: string } {
+const STANDARD = new Set(["type", "title", "status", "detail", "instance", "code"]);
+
+/** The `detail`, `code` and other properties of a ProblemDetail body, when the body is one. */
+function parseProblem(text: string): { detail?: string; code?: string; extras?: Record<string, unknown> } {
   try {
     const body: unknown = JSON.parse(text);
     if (body && typeof body === "object") {
       const detail = "detail" in body && typeof body.detail === "string" ? body.detail : undefined;
       const code = "code" in body && typeof body.code === "string" ? body.code : undefined;
-      return { detail, code };
+      const extras = Object.fromEntries(Object.entries(body).filter(([key]) => !STANDARD.has(key)));
+      return { detail, code, extras };
     }
   } catch {
     // Not JSON

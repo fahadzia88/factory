@@ -5,7 +5,14 @@ import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 
 /** One event of the agent's NDJSON stream; [type] is null for a line that isn't a JSON object. */
-data class AgentChatEvent(val line: String, val type: String?, val sessionId: String?, val text: String?)
+data class AgentChatEvent(
+	val line: String,
+	val type: String?,
+	val sessionId: String?,
+	val text: String?,
+	val name: String? = null,
+	val status: String? = null,
+)
 
 /** Reads the agent's chat stream line by line. Closing it closes the connection, which cancels the turn on the agent. */
 class AgentChatStream(private val response: ClientHttpResponse, private val jsonMapper: JsonMapper) : AutoCloseable {
@@ -35,7 +42,7 @@ class AgentChatStream(private val response: ClientHttpResponse, private val json
 		}
 		if (node == null || !node.isObject) return AgentChatEvent(line, null, null, null)
 		fun field(name: String) = node.get(name)?.takeIf { it.isString }?.asString()
-		return AgentChatEvent(line, field("type"), field("sessionId"), field("text"))
+		return AgentChatEvent(line, field("type"), field("sessionId"), field("text"), field("name"), field("status"))
 	}
 
 	private companion object {

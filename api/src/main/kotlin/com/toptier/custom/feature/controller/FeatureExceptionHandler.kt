@@ -23,9 +23,29 @@ import com.toptier.custom.feature.exception.InvalidStatusException
 import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
+import com.toptier.custom.feature.exception.TaskNotFoundException
+import com.toptier.custom.feature.exception.InvalidAnswersException
+import com.toptier.custom.feature.exception.QuestionsNotPendingException
+import com.toptier.custom.feature.exception.InvalidQuestionsException
+import com.toptier.custom.feature.exception.TasksUnfinishedException
+import com.toptier.custom.feature.exception.RestackNotNeededException
+import com.toptier.custom.feature.exception.TaskDirtyException
+import com.toptier.custom.feature.exception.TaskClosedException
+import com.toptier.custom.feature.exception.RestackConflictException
+import com.toptier.custom.feature.exception.PullExistsException
+import com.toptier.custom.feature.exception.TaskNotPushedException
+import com.toptier.custom.feature.exception.InvalidFeatureRequestException
+import com.toptier.custom.feature.exception.InvalidTaskException
+import com.toptier.custom.feature.exception.SpecsNotApprovedException
+import com.toptier.custom.feature.exception.TaskExistsException
+import com.toptier.custom.feature.exception.TaskOutOfOrderException
+import com.toptier.custom.feature.exception.PreviousTaskUnfinishedException
+import com.toptier.custom.feature.exception.FeatureWorktreeMissingException
 import com.toptier.custom.feature.exception.UnsupportedFileTypeException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
 import com.toptier.custom.feature.exception.WorktreeMissingException
+import com.toptier.custom.feature.service.PullProblems
+import com.toptier.custom.github.exception.GitHubException
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -71,7 +91,37 @@ class FeatureExceptionHandler {
 			log.info("Feature chat: {}", ex.message)
 			problem(HttpStatus.BAD_GATEWAY, "agent_unavailable", ex.message!!)
 		}
+		is InvalidTaskException -> problem(HttpStatus.BAD_REQUEST, "invalid_task", ex.message!!)
+		is SpecsNotApprovedException -> problem(HttpStatus.CONFLICT, "specs_not_approved", ex.message!!)
+			.apply { setProperty("unapproved", ex.unapproved) }
+		is TaskExistsException -> problem(HttpStatus.CONFLICT, "task_exists", ex.message!!)
+		is TaskOutOfOrderException -> problem(HttpStatus.CONFLICT, "task_out_of_order", ex.message!!)
+			.apply { setProperty("expected", ex.expected) }
+		is PreviousTaskUnfinishedException -> problem(HttpStatus.CONFLICT, "previous_task_unfinished", ex.message!!)
+		is FeatureWorktreeMissingException -> problem(HttpStatus.CONFLICT, "worktree_missing", ex.message!!)
+		is PullExistsException -> problem(HttpStatus.CONFLICT, "pull_exists", ex.message!!)
+		is TaskNotPushedException -> problem(HttpStatus.CONFLICT, "task_not_pushed", ex.message!!)
+		is InvalidFeatureRequestException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
+		is RestackNotNeededException -> problem(HttpStatus.CONFLICT, "restack_not_needed", ex.message!!)
+		is TaskDirtyException -> problem(HttpStatus.CONFLICT, "task_dirty", ex.message!!)
+		is TaskClosedException -> problem(HttpStatus.CONFLICT, "task_closed", ex.message!!)
+		is RestackConflictException -> problem(HttpStatus.CONFLICT, "restack_conflict", ex.message!!)
+			.apply { setProperty("files", ex.files) }
+		is TasksUnfinishedException -> problem(HttpStatus.CONFLICT, "tasks_unfinished", ex.message!!)
+			.apply { setProperty("unfinished", ex.unfinished) }
+		is InvalidQuestionsException -> problem(HttpStatus.BAD_REQUEST, "invalid_questions", ex.message!!)
+		is InvalidAnswersException -> problem(HttpStatus.BAD_REQUEST, "invalid_answers", ex.message!!)
+		is QuestionsNotPendingException -> problem(HttpStatus.CONFLICT, "questions_not_pending", ex.message!!)
+		is TaskNotFoundException -> problem(HttpStatus.NOT_FOUND, "task_not_found", ex.message!!)
 		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
+	}
+
+	/** A feature pull request call that GitHub didn't answer usefully. */
+	@ExceptionHandler(GitHubException::class)
+	fun handleGitHub(ex: GitHubException): ProblemDetail {
+		log.info("Feature pull request call failed: {}", ex.message)
+		val described = PullProblems.describe(ex)
+		return problem(described.status, described.code, described.detail)
 	}
 
 	/** Thrown by the checkout package while a feature is created. */

@@ -70,3 +70,21 @@ export async function hasUnpushed(worktree: string): Promise<boolean> {
   }
   return Number((await gitIn(worktree, ["rev-list", "--count", "@{u}..HEAD"])).trim()) > 0;
 }
+
+/** Commits every change in the worktree; nothing staged → not committed. */
+export async function commitAll(worktree: string, message: string): Promise<CommitResult> {
+  await gitIn(worktree, ["add", "-A"]);
+  try {
+    await gitIn(worktree, ["diff", "--cached", "--quiet"]);
+    return { committed: false };
+  } catch (error) {
+    if ((error as GitError).exitCode !== 1) throw error;
+  }
+  await gitIn(worktree, ["commit", "-m", message]);
+  return { committed: true, sha: (await gitIn(worktree, ["rev-parse", "--short", "HEAD"])).trim() };
+}
+
+/** The branch checked out in the worktree, or `HEAD` when detached. */
+export async function currentBranch(worktree: string): Promise<string> {
+  return (await gitIn(worktree, ["rev-parse", "--abbrev-ref", "HEAD"])).trim();
+}

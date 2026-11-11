@@ -1,12 +1,13 @@
-import { BotIcon, FileTextIcon } from "lucide-react"
+import { BotIcon, FileTextIcon, GitPullRequestIcon } from "lucide-react"
 import { useState } from "react"
-import { Link, useRevalidator } from "react-router"
+import { Link, useLocation, useRevalidator } from "react-router"
 
 import { DocumentsTab } from "~/components/features/documents-tab"
 import { FeatureChat } from "~/components/features/feature-chat"
 import { FeatureNotFound } from "~/components/features/feature-not-found"
 import { FeatureStatusBadge } from "~/components/features/feature-status-badge"
 import { FeatureSteps } from "~/components/features/feature-steps"
+import { FeatureTasks } from "~/components/features/feature-tasks"
 import { PageHeader } from "~/components/page-header"
 import { ProjectBreadcrumb } from "~/components/projects/project-page"
 import { StatusBadge } from "~/components/status-badge"
@@ -102,6 +103,11 @@ export function HydrateFallback() {
 export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
   const revalidator = useRevalidator()
   const [turns, setTurns] = useState(0)
+  const location = useLocation()
+  // Set by the New feature form when the docs pull request couldn't be opened
+  const docsPullError =
+    (location.state as { docsPullError?: string | null } | null)
+      ?.docsPullError ?? null
   const { projectId, project, feature, notFound, error } = loaderData
 
   if (notFound) return <FeatureNotFound projectId={projectId} />
@@ -163,6 +169,7 @@ export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
         <FeatureTabs
           feature={feature}
           turns={turns}
+          docsPullError={docsPullError}
           onTurnEnd={() => {
             revalidator.revalidate()
             setTurns((n) => n + 1)
@@ -176,18 +183,28 @@ export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
 function FeatureTabs({
   feature,
   turns,
+  docsPullError,
   onTurnEnd,
 }: {
   feature: Feature
   turns: number
+  docsPullError: string | null
   onTurnEnd: () => void
 }) {
   return (
-    <Tabs defaultValue="agent" key={feature.id} className="min-w-0">
-      <TabsList className="w-fit">
+    <Tabs
+      defaultValue={docsPullError ? "pull-requests" : "agent"}
+      key={feature.id}
+      className="min-w-0"
+    >
+      <TabsList className="w-fit max-w-full overflow-x-auto">
         <TabsTrigger value="agent">
           <BotIcon />
           Agent
+        </TabsTrigger>
+        <TabsTrigger value="pull-requests">
+          <GitPullRequestIcon />
+          Pull requests
         </TabsTrigger>
         <TabsTrigger value="documents">
           <FileTextIcon />
@@ -199,6 +216,14 @@ function FeatureTabs({
           projectId={feature.projectId}
           featureId={feature.id}
           onTurnEnd={onTurnEnd}
+        />
+      </TabsContent>
+      <TabsContent value="pull-requests" keepMounted className="min-w-0">
+        <FeatureTasks
+          projectId={feature.projectId}
+          featureId={feature.id}
+          refresh={turns}
+          initialError={docsPullError}
         />
       </TabsContent>
       <TabsContent value="documents" keepMounted className="min-w-0">
