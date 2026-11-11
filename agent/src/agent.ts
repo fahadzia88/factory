@@ -13,7 +13,12 @@ import { featureUpdateStep } from "./tools/feature-update-step.ts";
 import { featureWriteFile } from "./tools/feature-write-file.ts";
 import { getProject } from "./tools/get-project.ts";
 import { listProjects } from "./tools/list-projects.ts";
+import { featureComplete } from "./tools/feature-complete.ts";
+import { featureTasks } from "./tools/feature-tasks.ts";
 import { taskCommit } from "./tools/task-commit.ts";
+import { taskOpenPull } from "./tools/task-open-pull.ts";
+import { taskRestack } from "./tools/task-restack.ts";
+import { taskStart } from "./tools/task-start.ts";
 import { taskEditFile } from "./tools/task-edit-file.ts";
 import { taskListFiles } from "./tools/task-list-files.ts";
 import { taskReadFile } from "./tools/task-read-file.ts";
@@ -42,6 +47,11 @@ const tools: Parameters<typeof createSdkMcpServer>[0]["tools"] = [
   taskWriteFile,
   taskEditFile,
   taskCommit,
+  featureTasks,
+  taskStart,
+  taskOpenPull,
+  taskRestack,
+  featureComplete,
 ];
 
 const instructions = readFileSync(new URL("./instructions.md", import.meta.url), "utf8");

@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { apiGet } from "./api.ts";
+import { ApiError, apiGet } from "./api.ts";
 import type { FeatureWorktree } from "./feature-api.ts";
 
 /** A task's pull request as the API reports it. */
@@ -71,4 +71,17 @@ export function assertWritable(task: TaskRow, tasks: TaskRow[]): void {
   if (task.number !== active && state !== "open") {
     throw new Error(`Task ${task.number} isn't the active task; task ${active} is.`);
   }
+}
+
+/** An API failure for the model: `<detail> (<code>)` plus the problem's lists (unapproved specs, unfinished tasks, conflicting files). */
+export function describeApiError(error: unknown): string {
+  if (!(error instanceof ApiError)) return error instanceof Error ? error.message : String(error);
+  const code = error.code ? ` (${error.code})` : "";
+  const extras = error.extras ? ` ${JSON.stringify(error.extras)}` : "";
+  return `${error.message}${code}${extras}`;
+}
+
+/** A failed tool result whose text is [prefix] and [describeApiError]. */
+export function apiToolError(prefix: string, error: unknown) {
+  return { content: [{ type: "text" as const, text: `${prefix}: ${describeApiError(error)}` }], isError: true };
 }
