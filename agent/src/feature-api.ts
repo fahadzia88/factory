@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { lstat, realpath } from "node:fs/promises";
+import { lstat, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { apiGet } from "./api.ts";
 
@@ -66,6 +66,38 @@ export function resolveRead(worktree: string, rel: string): Promise<string> {
 /** The absolute path of `rel` (relative to the worktree root) for writing: inside `<worktree>/<folder>/` only. */
 export function resolveWrite(worktree: string, folder: string, rel: string): Promise<string> {
   return resolveInside(worktree, rel, folder, `${rel} is outside ${folder}/; only the feature folder can be written.`);
+}
+
+/** The absolute path of `rel` in a task's worktree, for reading or writing: inside it, never in `.git`, symlinks followed. */
+export function resolveTaskPath(worktree: string, rel: string): Promise<string> {
+  return resolveInside(worktree, rel, "", `${rel} is outside the task's worktree.`);
+}
+
+/**
+ * Files under `dir` of the worktree whose real root is `root`, as paths from the root: breadth-first, `.git` left out,
+ * symlinked folders not followed, at most `limit` (`truncated` when there were more).
+ */
+export async function listFiles(root: string, dir: string, limit: number): Promise<{ files: string[]; truncated: boolean }> {
+  const files: string[] = [];
+  let truncated = false;
+  const queue = [dir];
+  // Dirent.isDirectory() is false for a symlink, so symlinked folders aren't followed
+  while (queue.length > 0 && !truncated) {
+    const folder = queue.shift() as string;
+    for (const entry of await readdir(folder, { withFileTypes: true })) {
+      if (entry.name === ".git") continue;
+      const full = path.join(folder, entry.name);
+      if (entry.isDirectory()) {
+        queue.push(full);
+      } else if (files.length < limit) {
+        files.push(path.relative(root, full));
+      } else {
+        truncated = true;
+        break;
+      }
+    }
+  }
+  return { files: files.sort(), truncated };
 }
 
 async function resolveInside(worktree: string, rel: string, under: string, outside: string): Promise<string> {
