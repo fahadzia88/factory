@@ -13,6 +13,9 @@ import java.time.Instant
 /** Body of `POST /api/projects/{id}/features`. */
 data class CreateFeatureRequest(val name: String? = null)
 
+/** A task worktree that completing the feature kept, and why. */
+data class KeptWorktreeResponse(val branch: String, val reason: String)
+
 /** Body of `POST …/tasks/{n}/pull`: the task's name and the ACs it covers; none for row 0. */
 data class OpenPullRequest(val task: String? = null, val acs: List<String>? = null)
 
@@ -62,6 +65,8 @@ data class FeatureResponse(
 	val updatedAt: Instant,
 	/** Set only by create, when the docs pull request couldn't be opened: why. */
 	val docsPullError: String? = null,
+	/** Set only by complete: the task worktrees that couldn't be removed. */
+	val keptWorktrees: List<KeptWorktreeResponse>? = null,
 ) {
 	companion object {
 		fun from(view: FeatureView): FeatureResponse {
