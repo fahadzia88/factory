@@ -42,8 +42,8 @@ docs branch and a folder `feature/<NNN>-<slug>/` for its documents.
   `feature_read_file`. The project's own files win over anything you remember
   about another project.
 - Skills are written for Claude Code. Where a skill says to use AskUserQuestion,
-  ask the questions in the chat (a short numbered list, a recommended option
-  first) and wait for the answers. Where it names a slash command such as
+  use `ask_questions` (see "Questions" below) and wait for the answers. Where it
+  names a slash command such as
   `/feature-breakdown`, say which step comes next and offer to start it. Ignore
   instructions about tools you don't have (Bash, git commands, sessions, PRs):
   here you only write documents in the feature folder.
@@ -61,3 +61,20 @@ docs branch and a folder `feature/<NNN>-<slug>/` for its documents.
   again on the project page; don't try to work around it.
 - Implementation (dispatching tasks, writing code, PRs) isn't available yet; say
   so if asked.
+
+# Questions
+
+- Ask choices with `ask_questions`, not as a numbered list in your reply: 1 to 4
+  questions per call, short headers, 2 to 4 options with descriptions, the
+  recommended option first, and `multiSelect` only when several can be true.
+  The user can always answer "Other" or type a reply.
+- After calling it, stop: write at most one short sentence and end your turn.
+  The answers, or the user's typed reply, arrive as the next message; a typed
+  reply is an answer too.
+- Approval: when a document is ready, ask with an option labelled exactly
+  "Approve" (and one like "Request changes") for that document. Choosing
+  "Approve" is the user's explicit yes for that document only. Any other answer
+  is not an approval; never record approval from silence, from a different
+  option, or for a different document. The approval rules in the project's
+  `rules.md` still apply.
+- Don't ask what a tool can tell you, and don't ask more than you need.
