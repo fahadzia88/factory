@@ -5,10 +5,11 @@ import {
   SquareIcon,
   WrenchIcon,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
 import { QuestionCards } from "~/components/features/question-cards"
+import { Markdown } from "~/components/pull-requests/markdown"
 import {
   useFeatureChat,
   type ChatTextMessage,
@@ -223,7 +224,7 @@ function Messages({
 
   return (
     <div
-      className="flex max-h-[32rem] min-h-48 flex-col gap-4 overflow-y-auto"
+      className="flex max-h-[32rem] min-h-48 min-w-0 flex-col gap-4 overflow-y-auto"
       role="log"
       aria-live="polite"
       aria-busy={busy}
@@ -251,12 +252,17 @@ function Messages({
   )
 }
 
-function Message({ message }: { message: ChatTextMessage }) {
+// Memoized so earlier messages don't re-parse their Markdown on every streamed delta
+const Message = memo(function Message({
+  message,
+}: {
+  message: ChatTextMessage
+}) {
   const fromUser = message.role === "user"
   return (
     <div
       className={cn(
-        "flex max-w-[85%] flex-col gap-2",
+        "flex max-w-[85%] min-w-0 flex-col gap-2",
         fromUser ? "items-end self-end" : "items-start self-start"
       )}
     >
@@ -271,22 +277,22 @@ function Message({ message }: { message: ChatTextMessage }) {
           </span>
         </Badge>
       ))}
-      {message.text && (
-        <div
-          className={cn(
-            "rounded-lg px-3 py-2 text-sm break-words whitespace-pre-wrap",
-            fromUser ? "bg-primary text-primary-foreground" : "bg-muted"
-          )}
-        >
-          {message.text}
-        </div>
-      )}
+      {message.text &&
+        (fromUser ? (
+          <div className="rounded-lg bg-primary px-3 py-2 text-sm break-words whitespace-pre-wrap text-primary-foreground">
+            {message.text}
+          </div>
+        ) : (
+          <div className="max-w-full min-w-0 rounded-lg bg-muted px-3 py-2 break-words">
+            <Markdown>{message.text}</Markdown>
+          </div>
+        ))}
       {message.failed && (
         <span className="text-xs text-destructive">Not sent</span>
       )}
     </div>
   )
-}
+})
 
 function ChatError({ error }: { error: FeatureError }) {
   const navigate = useNavigate()
