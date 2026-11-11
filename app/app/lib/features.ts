@@ -67,6 +67,36 @@ export type FeatureMessage = {
   createdAt: string
 }
 
+export type QuestionOption = { label: string; description: string }
+
+/** One question; the first option is the recommended one, and the app adds "Other" */
+export type Question = {
+  header: string
+  question: string
+  multiSelect: boolean
+  options: QuestionOption[]
+}
+
+export type QuestionAnswer = {
+  header: string
+  selected: string[]
+  other: string | null
+}
+
+export type QuestionSet = {
+  id: number
+  status: "pending" | "answered" | "superseded"
+  questions: Question[]
+  /** null until answered with the cards (a typed reply leaves it null) */
+  answers: QuestionAnswer[] | null
+  answerMessageId: number | null
+  createdAt: string
+}
+
+/** One item of a feature's chat history */
+export type HistoryItem =
+  ({ kind: "message" } & FeatureMessage) | ({ kind: "questions" } & QuestionSet)
+
 const featuresPath = (projectId: number) =>
   `/api/projects/${projectId}/features`
 
@@ -82,10 +112,33 @@ export function createFeature(projectId: number, name: string) {
   return api.post<Feature>(featuresPath(projectId), { name })
 }
 
-export function listFeatureMessages(projectId: number, featureId: number) {
-  return api.get<FeatureMessage[]>(
+export async function listFeatureMessages(
+  projectId: number,
+  featureId: number
+) {
+  const items = await api.get<HistoryItem[]>(
     `${featuresPath(projectId)}/${featureId}/messages`
   )
+  return items.filter((i) => i.kind === "message" || i.kind === "questions")
+}
+
+/** The text the agent gets for answers; mirrors the API's own formatting */
+export function formatAnswers(
+  questions: Question[],
+  answers: QuestionAnswer[]
+) {
+  const lines = questions.map((question, i) => {
+    const answer = answers[i]
+    const recommended = question.options[0]?.label
+    const parts = [
+      ...answer.selected.map((label) =>
+        label === recommended ? `${label} (recommended)` : label
+      ),
+      ...(answer.other ? [`Other: ${answer.other}`] : []),
+    ]
+    return `${i + 1}. ${question.header}: ${parts.join(", ")}`
+  })
+  return ["Answers to your questions:", ...lines].join("\n")
 }
 
 export function cancelFeatureChat(projectId: number, featureId: number) {
@@ -107,6 +160,7 @@ export type FeatureChatEvent =
   | { type: "done"; text: string }
   | { type: "error"; message: string }
   | { type: "cancelled" }
+  | { type: "questions"; id: number; questions: Question[] }
 
 const CHAT_EVENTS = new Set([
   "session",
@@ -115,6 +169,7 @@ const CHAT_EVENTS = new Set([
   "done",
   "error",
   "cancelled",
+  "questions",
 ])
 
 /**
@@ -125,7 +180,7 @@ const CHAT_EVENTS = new Set([
 export async function sendFeatureMessage(
   projectId: number,
   featureId: number,
-  message: string,
+  input: string | { questionsId: number; answers: QuestionAnswer[] },
   {
     signal,
     onEvent,
@@ -139,7 +194,14 @@ export async function sendFeatureMessage(
   if (token) headers.set("Authorization", `Bearer ${token}`)
   const response = await fetch(
     `${API_BASE_URL}${featuresPath(projectId)}/${featureId}/messages`,
-    { method: "POST", headers, body: JSON.stringify({ message }), signal }
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(
+        typeof input === "string" ? { message: input } : input
+      ),
+      signal,
+    }
   )
   if (!response.ok || !response.body) {
     const type = response.headers.get("Content-Type") ?? ""
