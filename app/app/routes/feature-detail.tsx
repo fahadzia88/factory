@@ -1,4 +1,4 @@
-import { BotIcon, FileTextIcon } from "lucide-react"
+import { BotIcon, FileTextIcon, GitPullRequestIcon } from "lucide-react"
 import { useState } from "react"
 import { Link, useLocation, useRevalidator } from "react-router"
 
@@ -151,55 +151,89 @@ export default function FeatureDetail({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <FeatureDetailsCard feature={feature} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Steps</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FeatureSteps steps={feature.steps} />
-        </CardContent>
-      </Card>
-
-      <FeatureTasks
-        key={feature.id}
-        projectId={feature.projectId}
-        featureId={feature.id}
-        refresh={turns}
-        initialError={docsPullError}
-      />
-
-      <Tabs defaultValue="agent" key={feature.id}>
-        <TabsList className="w-fit">
-          <TabsTrigger value="agent">
-            <BotIcon />
-            Agent
-          </TabsTrigger>
-          <TabsTrigger value="documents">
-            <FileTextIcon />
-            Documents
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="agent" keepMounted className="min-w-0">
-          <FeatureChat
-            projectId={feature.projectId}
-            featureId={feature.id}
-            onTurnEnd={() => {
-              revalidator.revalidate()
-              setTurns((n) => n + 1)
-            }}
-          />
-        </TabsContent>
-        <TabsContent value="documents" keepMounted className="min-w-0">
-          <DocumentsTab
-            projectId={feature.projectId}
-            featureId={feature.id}
-            refreshKey={turns}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <aside
+          aria-label="Feature details"
+          className="flex min-w-0 flex-col gap-6"
+        >
+          <FeatureDetailsCard feature={feature} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Steps</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FeatureSteps steps={feature.steps} />
+            </CardContent>
+          </Card>
+        </aside>
+        <FeatureTabs
+          feature={feature}
+          turns={turns}
+          docsPullError={docsPullError}
+          onTurnEnd={() => {
+            revalidator.revalidate()
+            setTurns((n) => n + 1)
+          }}
+        />
+      </div>
     </>
+  )
+}
+
+function FeatureTabs({
+  feature,
+  turns,
+  docsPullError,
+  onTurnEnd,
+}: {
+  feature: Feature
+  turns: number
+  docsPullError: string | null
+  onTurnEnd: () => void
+}) {
+  return (
+    <Tabs
+      defaultValue={docsPullError ? "pull-requests" : "agent"}
+      key={feature.id}
+      className="min-w-0"
+    >
+      <TabsList className="w-fit max-w-full overflow-x-auto">
+        <TabsTrigger value="agent">
+          <BotIcon />
+          Agent
+        </TabsTrigger>
+        <TabsTrigger value="pull-requests">
+          <GitPullRequestIcon />
+          Pull requests
+        </TabsTrigger>
+        <TabsTrigger value="documents">
+          <FileTextIcon />
+          Documents
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="agent" keepMounted className="min-w-0">
+        <FeatureChat
+          projectId={feature.projectId}
+          featureId={feature.id}
+          onTurnEnd={onTurnEnd}
+        />
+      </TabsContent>
+      <TabsContent value="pull-requests" keepMounted className="min-w-0">
+        <FeatureTasks
+          projectId={feature.projectId}
+          featureId={feature.id}
+          refresh={turns}
+          initialError={docsPullError}
+        />
+      </TabsContent>
+      <TabsContent value="documents" keepMounted className="min-w-0">
+        <DocumentsTab
+          projectId={feature.projectId}
+          featureId={feature.id}
+          refreshKey={turns}
+        />
+      </TabsContent>
+    </Tabs>
   )
 }
 
@@ -208,7 +242,7 @@ function FeatureDetailsCard({ feature }: { feature: Feature }) {
   return (
     <Card>
       <CardContent>
-        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-1">
           <Detail label="Status">
             <FeatureStatusBadge status={feature.status} />
           </Detail>
@@ -267,7 +301,7 @@ function Detail({
 }) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-1 ${wide ? "sm:col-span-2" : ""}`}
+      className={`flex min-w-0 flex-col gap-1 ${wide ? "sm:col-span-2 lg:col-span-1" : ""}`}
     >
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="min-w-0">{children}</dd>

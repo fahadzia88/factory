@@ -108,6 +108,11 @@ export function getFeature(projectId: number, featureId: number) {
   return api.get<Feature>(`${featuresPath(projectId)}/${featureId}`)
 }
 
+/** The project's current `feature/workflow.json`, read from its checkout. */
+export function getProjectWorkflow(projectId: number) {
+  return api.get<FeatureWorkflow>(`/api/projects/${projectId}/workflow`)
+}
+
 export function createFeature(projectId: number, name: string) {
   return api.post<Feature>(featuresPath(projectId), { name })
 }
