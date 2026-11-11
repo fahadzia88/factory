@@ -8,10 +8,11 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
+import { QuestionCards } from "~/components/features/question-cards"
 import {
   useFeatureChat,
+  type ChatTextMessage,
   type ChatHistory,
-  type ChatMessage,
 } from "~/components/features/use-feature-chat"
 import { StatusBadge } from "~/components/status-badge"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
@@ -40,7 +41,7 @@ import {
 import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { logout } from "~/lib/auth"
-import type { FeatureError } from "~/lib/features"
+import type { FeatureError, QuestionAnswer, QuestionSet } from "~/lib/features"
 import { cn } from "~/lib/utils"
 
 const TOOL_STATE = { running: "running", completed: "done", failed: "failed" }
@@ -58,6 +59,11 @@ export function FeatureChat({
   const chat = useFeatureChat(projectId, featureId, onTurnEnd)
   const [draft, setDraft] = useState("")
   const loaded = chat.history.status === "loaded"
+  const pending =
+    chat.history.status === "loaded" &&
+    chat.history.messages.some(
+      (m) => m.kind === "questions" && m.set.status === "pending"
+    )
 
   function submit() {
     if (!draft.trim() || !loaded || chat.turn) return
@@ -87,6 +93,7 @@ export function FeatureChat({
           thinking={chat.turn?.thinking ?? false}
           busy={chat.turn !== null}
           onRetry={chat.reloadHistory}
+          onAnswer={(set, answers) => chat.answer(set, answers)}
         />
         {chat.error && <ChatError error={chat.error} />}
       </CardContent>
@@ -101,7 +108,11 @@ export function FeatureChat({
           <InputGroup>
             <InputGroupTextarea
               aria-label="Message the agent"
-              placeholder="Message the agent…"
+              placeholder={
+                pending
+                  ? "Answer the cards or type a reply…"
+                  : "Message the agent…"
+              }
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
@@ -150,11 +161,13 @@ function Messages({
   thinking,
   busy,
   onRetry,
+  onAnswer,
 }: {
   history: ChatHistory
   thinking: boolean
   busy: boolean
   onRetry: () => void
+  onAnswer: (set: QuestionSet, answers: QuestionAnswer[]) => void
 }) {
   const end = useRef<HTMLDivElement>(null)
 
@@ -215,9 +228,18 @@ function Messages({
       aria-live="polite"
       aria-busy={busy}
     >
-      {history.messages.map((message) => (
-        <Message key={message.key} message={message} />
-      ))}
+      {history.messages.map((message) =>
+        message.kind === "questions" ? (
+          <QuestionCards
+            key={message.key}
+            set={message.set}
+            disabled={busy}
+            onSubmit={(answers) => onAnswer(message.set, answers)}
+          />
+        ) : (
+          <Message key={message.key} message={message} />
+        )
+      )}
       {thinking && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner aria-hidden />
@@ -229,7 +251,7 @@ function Messages({
   )
 }
 
-function Message({ message }: { message: ChatMessage }) {
+function Message({ message }: { message: ChatTextMessage }) {
   const fromUser = message.role === "user"
   return (
     <div

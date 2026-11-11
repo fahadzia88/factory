@@ -3,13 +3,17 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   cancelFeatureChat,
   featureError,
+  formatAnswers,
   listFeatureMessages,
   sendFeatureMessage,
   type FeatureChatTool,
   type FeatureError,
+  type QuestionAnswer,
+  type QuestionSet,
 } from "~/lib/features"
 
-export type ChatMessage = {
+export type ChatTextMessage = {
+  kind: "message"
   key: string
   role: "user" | "assistant"
   text: string
@@ -17,12 +21,18 @@ export type ChatMessage = {
   failed?: boolean
 }
 
+export type ChatQuestions = { kind: "questions"; key: string; set: QuestionSet }
+
+export type ChatMessage = ChatTextMessage | ChatQuestions
+
 export type ChatHistory =
   | { status: "loading" }
   | { status: "loaded"; messages: ChatMessage[] }
   | { status: "error"; error: FeatureError }
 
 export type ChatTurn = { abort: AbortController; thinking: boolean }
+
+type Input = string | { questionsId: number; answers: QuestionAnswer[] }
 
 /** A feature's one conversation with the agent: stored history, then turns streamed one at a time. */
 export function useFeatureChat(
@@ -43,16 +53,21 @@ export function useFeatureChat(
     const id = ++request.current
     setHistory({ status: "loading" })
     listFeatureMessages(projectId, featureId).then(
-      (messages) => {
+      (items) => {
         if (id !== request.current) return
         setHistory({
           status: "loaded",
-          messages: messages.map((m) => ({
-            key: `stored-${m.id}`,
-            role: m.role,
-            text: m.text,
-            tools: [],
-          })),
+          messages: items.map((item): ChatMessage =>
+            item.kind === "message"
+              ? {
+                  kind: "message",
+                  key: `stored-${item.id}`,
+                  role: item.role,
+                  text: item.text,
+                  tools: [],
+                }
+              : { kind: "questions", key: `questions-${item.id}`, set: item }
+          ),
         })
       },
       (reason) => {
@@ -70,52 +85,87 @@ export function useFeatureChat(
     }
   }, [reloadHistory])
 
-  const update = (key: string, change: (m: ChatMessage) => ChatMessage) =>
+  const edit = (change: (messages: ChatMessage[]) => ChatMessage[]) =>
     setHistory((h) =>
-      h.status === "loaded"
-        ? {
-            ...h,
-            messages: h.messages.map((m) => (m.key === key ? change(m) : m)),
-          }
-        : h
+      h.status === "loaded" ? { ...h, messages: change(h.messages) } : h
     )
 
-  /** Sends `raw`; resolves with text to put back in the draft when it wasn't sent. */
-  async function send(raw: string): Promise<string | null> {
-    const text = raw.trim()
-    if (!text || turnRef.current || history.status !== "loaded") return null
+  const updateText = (
+    key: string,
+    change: (m: ChatTextMessage) => ChatTextMessage
+  ) =>
+    edit((messages) =>
+      messages.map((m) =>
+        m.key === key && m.kind === "message" ? change(m) : m
+      )
+    )
+
+  /** Marks pending question sets answered; returns the keys so a failed send can restore them. */
+  const answerPending = (
+    only: number | null,
+    answers: QuestionAnswer[] | null
+  ): string[] => {
+    if (history.status !== "loaded") return []
+    const keys = history.messages
+      .filter(
+        (m): m is ChatQuestions =>
+          m.kind === "questions" &&
+          m.set.status === "pending" &&
+          (only === null || m.set.id === only)
+      )
+      .map((m) => m.key)
+    edit((messages) =>
+      messages.map((m) =>
+        m.kind === "questions" && keys.includes(m.key)
+          ? { ...m, set: { ...m.set, status: "answered", answers } }
+          : m
+      )
+    )
+    return keys
+  }
+
+  const restorePending = (keys: string[]) =>
+    edit((messages) =>
+      messages.map((m) =>
+        m.kind === "questions" && keys.includes(m.key)
+          ? { ...m, set: { ...m.set, status: "pending", answers: null } }
+          : m
+      )
+    )
+
+  /** Runs one turn; resolves with text to put back in the draft when it wasn't sent. */
+  async function run(input: Input, echo: string, answered: string[]) {
     const userKey = `local-${++nextKey.current}`
     const replyKey = `local-${++nextKey.current}`
     const current: ChatTurn = { abort: new AbortController(), thinking: true }
     turnRef.current = current
     setTurn(current)
     setError(null)
-    setHistory((h) =>
-      h.status === "loaded"
-        ? {
-            ...h,
-            messages: [
-              ...h.messages,
-              { key: userKey, role: "user", text, tools: [] },
-              { key: replyKey, role: "assistant", text: "", tools: [] },
-            ],
-          }
-        : h
-    )
+    edit((messages) => [
+      ...messages,
+      { kind: "message", key: userKey, role: "user", text: echo, tools: [] },
+      {
+        kind: "message",
+        key: replyKey,
+        role: "assistant",
+        text: "",
+        tools: [],
+      },
+    ])
     const settle = (thinking: boolean) => {
       if (turnRef.current !== current) return
       turnRef.current = { ...current, thinking }
       setTurn(turnRef.current)
     }
 
-    let restore: string | null = null
+    let failed: FeatureError | null = null
     try {
-      const final = await sendFeatureMessage(projectId, featureId, text, {
+      const final = await sendFeatureMessage(projectId, featureId, input, {
         signal: current.abort.signal,
         onEvent: (event) => {
           if (event.type === "text") {
             settle(false)
-            update(replyKey, (m) => ({ ...m, text: m.text + event.delta }))
+            updateText(replyKey, (m) => ({ ...m, text: m.text + event.delta }))
           } else if (event.type === "tool") {
             settle(false)
             const tool = {
@@ -123,14 +173,27 @@ export function useFeatureChat(
               name: event.name,
               status: event.status,
             }
-            update(replyKey, (m) => ({
+            updateText(replyKey, (m) => ({
               ...m,
               tools: m.tools.some((t) => t.id === tool.id)
                 ? m.tools.map((t) => (t.id === tool.id ? tool : t))
                 : [...m.tools, tool],
             }))
+          } else if (event.type === "questions") {
+            const set: QuestionSet = {
+              id: event.id,
+              status: "pending",
+              questions: event.questions,
+              answers: null,
+              answerMessageId: null,
+              createdAt: new Date().toISOString(),
+            }
+            edit((messages) => [
+              ...messages,
+              { kind: "questions", key: `questions-${event.id}`, set },
+            ])
           } else if (event.type === "done") {
-            update(replyKey, (m) => ({ ...m, text: event.text }))
+            updateText(replyKey, (m) => ({ ...m, text: event.text }))
           }
         },
       })
@@ -144,26 +207,20 @@ export function useFeatureChat(
       }
     } catch (reason) {
       if (!current.abort.signal.aborted) {
-        setError(featureError(reason))
-        restore = text
-        update(userKey, (m) => ({ ...m, failed: true }))
-        setHistory((h) =>
-          h.status === "loaded"
-            ? { ...h, messages: h.messages.filter((m) => m.key !== replyKey) }
-            : h
-        )
+        failed = featureError(reason)
+        setError(failed)
+        updateText(userKey, (m) => ({ ...m, failed: true }))
+        edit((messages) => messages.filter((m) => m.key !== replyKey))
+        restorePending(answered)
       }
     } finally {
       // An empty reply bubble (stopped before any text) isn't worth keeping
-      setHistory((h) =>
-        h.status === "loaded"
-          ? {
-              ...h,
-              messages: h.messages.filter(
-                (m) => m.key !== replyKey || m.text !== "" || m.tools.length > 0
-              ),
-            }
-          : h
+      edit((messages) =>
+        messages.filter(
+          (m) =>
+            m.key !== replyKey ||
+            (m.kind === "message" && (m.text !== "" || m.tools.length > 0))
+        )
       )
       if (turnRef.current?.abort === current.abort) {
         turnRef.current = null
@@ -171,7 +228,35 @@ export function useFeatureChat(
       }
       onTurnEndRef.current()
     }
-    return restore
+    return failed
+  }
+
+  /** Sends a typed message; resolves with text to put back in the draft when it wasn't sent. */
+  async function send(raw: string): Promise<string | null> {
+    const text = raw.trim()
+    if (!text || turnRef.current || history.status !== "loaded") return null
+    // A typed reply answers whatever questions are pending, as the API records it
+    const answered = answerPending(null, null)
+    const failed = await run(text, text, answered)
+    return failed ? text : null
+  }
+
+  /** Sends answers to the pending set `questionsId`. */
+  async function answer(set: QuestionSet, answers: QuestionAnswer[]) {
+    if (turnRef.current || history.status !== "loaded") return
+    const answered = answerPending(set.id, answers)
+    const failed = await run(
+      { questionsId: set.id, answers },
+      formatAnswers(set.questions, answers),
+      answered
+    )
+    // The set changed on the server (answered elsewhere, or replaced): show what it holds now
+    if (
+      failed?.code === "questions_not_pending" ||
+      failed?.code === "invalid_answers"
+    ) {
+      reloadHistory()
+    }
   }
 
   function stop() {
@@ -179,5 +264,5 @@ export function useFeatureChat(
     cancelFeatureChat(projectId, featureId).catch(() => {})
   }
 
-  return { history, turn, error, send, stop, reloadHistory }
+  return { history, turn, error, send, answer, stop, reloadHistory }
 }
