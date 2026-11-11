@@ -109,3 +109,6 @@ data class UnfinishedTask(val task: Int, val reason: String)
 /** Some tasks aren't merged yet; [unfinished] says which and why. */
 class TasksUnfinishedException(val unfinished: List<UnfinishedTask>) :
 	FeatureException("The feature can't be completed until every task's pull request is merged.")
+
+/** A question set breaks the rules; the message names the question and the problem. */
+class InvalidQuestionsException(message: String) : FeatureException(message)
