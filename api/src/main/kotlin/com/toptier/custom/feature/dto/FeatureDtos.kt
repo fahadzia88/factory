@@ -13,6 +13,9 @@ import java.time.Instant
 /** Body of `POST /api/projects/{id}/features`. */
 data class CreateFeatureRequest(val name: String? = null)
 
+/** Body of `POST …/features/{featureId}/tasks`: the task's folder name in `tasks/`. */
+data class StartTaskRequest(val dir: String? = null)
+
 /** Body of `PUT …/features/{featureId}/status`. */
 data class SetStatusRequest(val status: String? = null)
 

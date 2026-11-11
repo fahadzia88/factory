@@ -7,6 +7,13 @@ import com.toptier.custom.feature.TaskFixtures.task
 import com.toptier.custom.feature.controller.FeatureExceptionHandler
 import com.toptier.custom.feature.controller.FeatureTaskController
 import com.toptier.custom.feature.exception.FeatureNotFoundException
+import com.toptier.custom.feature.exception.FeatureWorktreeMissingException
+import com.toptier.custom.feature.exception.InvalidTaskException
+import com.toptier.custom.feature.exception.PreviousTaskUnfinishedException
+import com.toptier.custom.feature.exception.SpecsNotApprovedException
+import com.toptier.custom.feature.exception.TaskExistsException
+import com.toptier.custom.feature.exception.TaskOutOfOrderException
+import com.toptier.custom.feature.service.TaskStarter
 import com.toptier.custom.feature.exception.TaskNotFoundException
 import com.toptier.custom.feature.service.FeatureTasks
 import com.toptier.custom.feature.service.FeatureWorktree
@@ -28,6 +35,8 @@ import org.springframework.test.web.servlet.MockHttpServletRequestDsl
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MockMvcResultMatchersDsl
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.post
+import org.springframework.http.MediaType
 import java.net.SocketTimeoutException
 
 @WebMvcTest(FeatureTaskController::class)
@@ -41,6 +50,9 @@ class FeatureTaskControllerTests {
 
 	@MockitoBean
 	lateinit var featureTasks: FeatureTasks
+
+	@MockitoBean
+	lateinit var taskStarter: TaskStarter
 
 	@Test
 	fun `rejects requests without a token`() {
@@ -97,6 +109,50 @@ class FeatureTaskControllerTests {
 		mockMvc.get("$BASE/2") { auth() }.andExpect { problem(504, "github_timeout") }
 		mockMvc.get("$BASE/3") { auth() }.andExpect { problem(503, "git_not_configured") }
 		mockMvc.get("$BASE/abc") { auth() }.andExpect { problem(400, "invalid_request") }
+	}
+
+	@Test
+	fun `start answers 201 with the task`() {
+		given(taskStarter.start(12, 21, "01-api-a")).willReturn(
+			TaskView(task(1, "feat/006-x/01-api-a", "feat/006-x/00-docs"), FeatureWorktree(10, "/repos/12.worktrees/feat__006-x__01-api-a", false), null, null, false),
+		)
+
+		mockMvc.post(BASE) { json("""{"dir":"01-api-a"}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.post(BASE) { auth(); json("""{"dir":"01-api-a"}""") }.andExpect {
+			status { isCreated() }
+			jsonPath("$.number") { value(1) }
+			jsonPath("$.branch") { value("feat/006-x/01-api-a") }
+			jsonPath("$.worktree.id") { value(10) }
+		}
+	}
+
+	@Test
+	fun `start refusals map to 400 and 409`() {
+		given(taskStarter.start(12, 21, "bad")).willThrow(InvalidTaskException("bad"))
+		given(taskStarter.start(12, 21, "02-app-b")).willThrow(SpecsNotApprovedException(listOf("feature/006-x/tasks/02-app-b/spec.md")))
+		given(taskStarter.start(12, 21, "01-api-a")).willThrow(TaskExistsException(1))
+		given(taskStarter.start(12, 21, "03-agent-c")).willThrow(TaskOutOfOrderException(2))
+		given(taskStarter.start(12, 21, "02-app-x")).willThrow(PreviousTaskUnfinishedException(1))
+		given(taskStarter.start(12, 21, "09-api-z")).willThrow(FeatureWorktreeMissingException("feat/006-x/00-docs"))
+
+		mockMvc.post(BASE) { auth(); json("""{"dir":"bad"}""") }.andExpect { problem(400, "invalid_task") }
+		mockMvc.post(BASE) { auth(); json("""{"dir":"02-app-b"}""") }.andExpect {
+			problem(409, "specs_not_approved")
+			jsonPath("$.unapproved[0]") { value("feature/006-x/tasks/02-app-b/spec.md") }
+		}
+		mockMvc.post(BASE) { auth(); json("""{"dir":"01-api-a"}""") }.andExpect { problem(409, "task_exists") }
+		mockMvc.post(BASE) { auth(); json("""{"dir":"03-agent-c"}""") }.andExpect {
+			problem(409, "task_out_of_order")
+			jsonPath("$.expected") { value(2) }
+		}
+		mockMvc.post(BASE) { auth(); json("""{"dir":"02-app-x"}""") }.andExpect { problem(409, "previous_task_unfinished") }
+		mockMvc.post(BASE) { auth(); json("""{"dir":"09-api-z"}""") }.andExpect { problem(409, "worktree_missing") }
+		mockMvc.post(BASE) { auth(); json("{not json") }.andExpect { problem(400, "invalid_request") }
+	}
+
+	private fun MockHttpServletRequestDsl.json(body: String) {
+		contentType = MediaType.APPLICATION_JSON
+		content = body
 	}
 
 	private fun MockMvcResultMatchersDsl.problem(status: Int, code: String) {
