@@ -47,6 +47,8 @@ export type Feature = {
   steps: FeatureStep[]
   createdAt: string
   updatedAt: string
+  /** Set only by create, when the docs pull request couldn't be opened */
+  docsPullError?: string | null
 }
 
 export type FeatureSummary = {
@@ -180,6 +182,60 @@ export async function sendFeatureMessage(
   )
 }
 
+export type TaskCheckRun = {
+  name: string
+  status: string
+  conclusion: string | null
+  htmlUrl: string | null
+  title: string | null
+  summary: string | null
+}
+
+export type TaskChecks = {
+  state: "none" | "pending" | "success" | "failure"
+  runs: TaskCheckRun[]
+}
+
+export type TaskPull = {
+  number: number
+  title: string
+  state: "open" | "closed" | "merged"
+  draft: boolean
+  htmlUrl: string
+  baseRef: string
+  headSha: string | null
+  mergedAt: string | null
+  checks: TaskChecks
+}
+
+/** One branch of a feature's stack; row 0 is the docs branch */
+export type FeatureTask = {
+  number: number
+  layer: string
+  slug: string
+  branch: string
+  baseBranch: string
+  specPath: string | null
+  stepId: number | null
+  worktree: FeatureWorktree | null
+  /** null when no pull request was opened, or GitHub couldn't be read */
+  pull: TaskPull | null
+  pullError: string | null
+  needsRestack: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export function listFeatureTasks(projectId: number, featureId: number) {
+  return api.get<FeatureTask[]>(`${featuresPath(projectId)}/${featureId}/tasks`)
+}
+
+export function openDocsPull(projectId: number, featureId: number) {
+  return api.post<FeatureTask>(
+    `${featuresPath(projectId)}/${featureId}/tasks/0/pull`
+  )
+}
+
 export type FeatureErrorCode =
   | "project_not_found"
   | "feature_not_found"
@@ -195,6 +251,12 @@ export type FeatureErrorCode =
   | "git_error"
   | "chat_busy"
   | "agent_unavailable"
+  | "pull_exists"
+  | "task_not_pushed"
+  | "github_error"
+  | "github_timeout"
+  | "github_rate_limited"
+  | "github_not_configured"
 
 export type FeatureError = {
   /** null when the request never got a response */
