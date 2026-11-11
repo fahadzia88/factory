@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { type Options, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import { askQuestions } from "./tools/ask-questions.ts";
 import { featureAddStep } from "./tools/feature-add-step.ts";
 import { featureCommit } from "./tools/feature-commit.ts";
 import { featureEditFile } from "./tools/feature-edit-file.ts";
@@ -30,6 +31,7 @@ const tools: Parameters<typeof createSdkMcpServer>[0]["tools"] = [
   featureSetStatus,
   featureAddStep,
   featureUpdateStep,
+  askQuestions,
 ];
 
 const instructions = readFileSync(new URL("./instructions.md", import.meta.url), "utf8");
