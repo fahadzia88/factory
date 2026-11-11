@@ -49,13 +49,14 @@ People who work on a project and want to file a bug or an improvement, move it t
   - The agent starts in investigator mode: it can read the codebase and write its findings into `details.md`, and changes nothing else.
   - An **Approve** button: the user accepts the investigation; the agent then switches to implementer mode and can change code in the worktree. Approve is disabled while `details.md` has no findings written by the agent.
   - A **Commit** button commits the worktree changes; a **Push** button pushes the branch.
+  - A **Create pull request** button opens a pull request on GitHub for the pushed branch, against the default branch, and saves its link on the ticket.
 - API endpoints for the above, and the tracker UI in the app on the project's page.
 
 ## Non-goals
 
 - Comments, assignees, labels, attachments, notifications.
-- Syncing with GitHub Issues or pull request state; the pull request link is just text the user supplies.
-- Opening pull requests from the ticket page.
+- Syncing with GitHub Issues or pull request state (status, reviews, merges); the ticket only stores the pull request link, and the user moves the status.
+- Merging or closing pull requests from the ticket page.
 - Deleting tickets, changing a ticket's type after creation.
 - A tracker across projects.
 
@@ -70,6 +71,8 @@ People who work on a project and want to file a bug or an improvement, move it t
 - The agent chat for a ticket is kept with the ticket and reuses the existing feature chat mechanism.
 - After `reopened` → `in progress`, the agent stays in the mode it was in (implementer if the user had approved).
 - Commit uses a message the user can edit, with a default such as the ticket number and title.
+- Create pull request uses a title the user can edit (default `#<number> <title>`) and a body made from the ticket's description with the ticket number. It does not change the ticket's status.
+- A ticket has at most one pull request created this way; a link edited by hand can be replaced by it only with the user's confirmation.
 
 ## Constraints
 
@@ -121,12 +124,17 @@ People who work on a project and want to file a bug or an improvement, move it t
 - **AC-28** — Given findings in `details.md`, when the user clicks **Approve**, then the approval is recorded in the history and the agent switches to implementer mode, where it can change code in the worktree.
 - **AC-29** — Given changes in the worktree, when the user clicks **Commit** with a message, then they are committed to the ticket's branch and the history records it; with no changes, nothing is committed and the user is told.
 - **AC-30** — Given a committed branch, when the user clicks **Push**, then the branch is pushed, and a failure is shown with the error and can be retried.
-- **AC-31** — Given an archived project, when the user opens its tracker, then tickets and history are viewable, and creating, editing, status changes and workspace actions are refused.
-- **AC-32** — Given a ticket id that does not exist or belongs to another project, when it is requested, then the API answers not found and the app shows a not-found message.
-- **AC-33** — Given a phone-width screen, when the user uses the tracker list, create form and ticket page, then everything is reachable without horizontal scrolling and the agent window sits below the markdown.
+- **AC-31** — Given a pushed branch and no pull request yet, when the user clicks **Create pull request** (optionally editing the title), then a pull request is opened on GitHub from the ticket's branch into the default branch, its link is saved on the ticket and shown on the page, and the history records it.
+- **AC-32** — Given a ticket that already has a created pull request, when the user opens its page, then the link is shown and **Create pull request** is not offered again; no duplicate is created.
+- **AC-33** — Given a branch that has not been pushed or has no commits beyond the default branch, when the user views the page, then **Create pull request** is disabled with the reason shown.
+- **AC-34** — Given GitHub rejects or cannot be reached when creating the pull request, when the user clicks the button, then the error is shown, no link is saved, and the user can retry.
+- **AC-35** — Given an archived project, when the user opens its tracker, then tickets and history are viewable, and creating, editing, status changes and workspace actions (including creating a pull request) are refused.
+- **AC-36** — Given a ticket id that does not exist or belongs to another project, when it is requested, then the API answers not found and the app shows a not-found message.
+- **AC-37** — Given a phone-width screen, when the user uses the tracker list, create form and ticket page, then everything is reachable without horizontal scrolling and the agent window sits below the markdown.
 
 ## Changelog
 
 - 2026-11-11 — Created.
 - 2026-11-11 — Drafted from the request and answers (per project; guided flow; priority and pull request link).
 - 2026-11-11 — Revised: more statuses with descriptions and a new flow (`reopened` and `incorrect expectation` bug-only), detail page, ticket workspace with worktree, `details.md`, investigator agent, Approve/Commit/Push.
+- 2026-11-11 — Added a Create pull request button (AC-31 to AC-34); later ACs renumbered.
