@@ -1,9 +1,13 @@
 package com.toptier.custom.feature.controller
 
 import com.toptier.custom.feature.dto.CancelResponse
+import com.toptier.custom.feature.dto.ChatItemResponse
+import com.toptier.custom.feature.dto.QuestionsItemResponse
 import com.toptier.custom.feature.dto.FeatureMessageResponse
 import com.toptier.custom.feature.dto.SendMessageRequest
+import com.toptier.custom.feature.service.ChatItem
 import com.toptier.custom.feature.service.FeatureChat
+import com.toptier.custom.feature.service.FeatureQuestions
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -16,12 +20,27 @@ import java.io.OutputStream
 /** A feature's chat with the agent: the stored conversation, a streamed turn, and stopping it. */
 @RestController
 @RequestMapping("/api/projects/{id}/features/{featureId}/messages")
-class FeatureChatController(private val chat: FeatureChat) {
+class FeatureChatController(
+	private val chat: FeatureChat,
+	private val questions: FeatureQuestions,
+) {
 
-	/** The feature's chat, oldest first. */
+	/** The feature's chat history, oldest first: messages and the question sets asked in them. */
 	@GetMapping
-	fun list(@PathVariable id: Long, @PathVariable featureId: Long): List<FeatureMessageResponse> =
-		chat.messages(id, featureId).map(FeatureMessageResponse::from)
+	fun list(@PathVariable id: Long, @PathVariable featureId: Long): List<ChatItemResponse> =
+		chat.history(id, featureId).map { item ->
+			when (item) {
+				is ChatItem.Message -> FeatureMessageResponse.from(item.message)
+				is ChatItem.Questions -> QuestionsItemResponse(
+					id = item.set.id!!,
+					status = item.set.status.name.lowercase(),
+					questions = questions.payloadOf(item.set).get("questions"),
+					answers = questions.answersOf(item.set),
+					answerMessageId = item.set.answerMessageId,
+					createdAt = item.set.createdAt,
+				)
+			}
+		}
 
 	/**
 	 * Sends a message and streams the agent's events as NDJSON. It writes on the request thread, not
@@ -35,7 +54,7 @@ class FeatureChatController(private val chat: FeatureChat) {
 		@RequestBody request: SendMessageRequest,
 		response: HttpServletResponse,
 	) {
-		chat.send(id, featureId, request.message, NdjsonOutput(response))
+		chat.send(id, featureId, request, NdjsonOutput(response))
 	}
 
 	/** Stops the feature's running turn. */

@@ -11,7 +11,18 @@ import com.toptier.custom.feature.domain.MessageRole
 import com.toptier.custom.feature.exception.AgentUnavailableException
 import com.toptier.custom.feature.exception.BlankMessageException
 import com.toptier.custom.feature.exception.ChatBusyException
+import com.toptier.custom.feature.domain.FeatureQuestionRepository
+import com.toptier.custom.feature.domain.QuestionStatus
+import com.toptier.custom.feature.dto.AnswerInput
+import com.toptier.custom.feature.dto.OptionInput
+import com.toptier.custom.feature.dto.QuestionInput
+import com.toptier.custom.feature.dto.QuestionsRequest
+import com.toptier.custom.feature.dto.SendMessageRequest
+import com.toptier.custom.feature.exception.InvalidAnswersException
+import com.toptier.custom.feature.exception.QuestionsNotPendingException
+import com.toptier.custom.feature.service.ChatItem
 import com.toptier.custom.feature.service.FeatureChat
+import com.toptier.custom.feature.service.FeatureQuestions
 import com.toptier.custom.feature.service.FeatureService
 import com.toptier.custom.feature.service.WorkflowCodec
 import com.toptier.custom.github.service.GitHubRepositoryChecker
@@ -52,7 +63,7 @@ import kotlin.test.assertTrue
 
 @DataJpaTest
 @Import(
-	FeatureChat::class, FeatureService::class, WorkflowCodec::class, ProjectService::class, WorktreeInspector::class,
+	FeatureChat::class, FeatureQuestions::class, FeatureService::class, WorkflowCodec::class, ProjectService::class, WorktreeInspector::class,
 	GitRunner::class, CheckoutTestConfig::class, FeatureTestConfig::class, FeatureChatTests.AgentClientConfig::class,
 )
 @EnableConfigurationProperties(FeatureProperties::class)
@@ -73,6 +84,12 @@ class FeatureChatTests {
 
 	@Autowired
 	lateinit var chat: FeatureChat
+
+	@Autowired
+	lateinit var questionService: FeatureQuestions
+
+	@Autowired
+	lateinit var questionRepository: FeatureQuestionRepository
 
 	@Autowired
 	lateinit var server: MockRestServiceServer
@@ -131,7 +148,7 @@ class FeatureChatTests {
 		server.verify()
 		assertEquals(listOf(SESSION, TEXT_1, TEXT_2, DONE).joinToString("\n", postfix = "\n"), out)
 		assertEquals(SESSION_ID, features.findById(feature.id!!).get().agentSessionId)
-		val stored = chat.messages(feature.projectId, feature.id!!)
+		val stored = messagesOf()
 		assertEquals(listOf(MessageRole.USER, MessageRole.ASSISTANT), stored.map { it.role })
 		assertEquals(listOf("Which feature is this?", "Feature 001-x."), stored.map { it.text })
 	}
@@ -170,10 +187,10 @@ class FeatureChatTests {
 		)
 		val out = ByteArrayOutputStream()
 
-		assertThrows<ChatBusyException> { chat.send(feature.projectId, feature.id!!, "Hi", out) }
+		assertThrows<ChatBusyException> { chat.send(feature.projectId, feature.id!!, SendMessageRequest("Hi"), out) }
 
 		assertEquals(0, out.size())
-		assertEquals(emptyList(), chat.messages(feature.projectId, feature.id!!))
+		assertEquals(emptyList(), messagesOf())
 	}
 
 	@Test
@@ -207,7 +224,7 @@ class FeatureChatTests {
 		assertEquals("error", error.get("type").asString())
 		assertEquals(SESSION_ID, error.get("sessionId").asString())
 		assertEquals("The agent didn't send anything for 5 minutes, so the turn was stopped.", error.get("message").asString())
-		assertEquals(listOf(MessageRole.USER), chat.messages(feature.projectId, feature.id!!).map { it.role })
+		assertEquals(listOf(MessageRole.USER), messagesOf().map { it.role })
 	}
 
 	@Test
@@ -229,7 +246,7 @@ class FeatureChatTests {
 		val out = send("Hi")
 
 		assertEquals(listOf(SESSION, unknown, error).joinToString("\n", postfix = "\n"), out)
-		assertEquals(listOf(MessageRole.USER), chat.messages(feature.projectId, feature.id!!).map { it.role })
+		assertEquals(listOf(MessageRole.USER), messagesOf().map { it.role })
 	}
 
 	@Test
@@ -241,7 +258,7 @@ class FeatureChatTests {
 
 			override fun read(): Int {
 				if (i == 0 && nested == null) {
-					nested = runCatching { chat.send(feature.projectId, feature.id!!, "Second", ByteArrayOutputStream()) }.exceptionOrNull() as Exception?
+					nested = runCatching { chat.send(feature.projectId, feature.id!!, SendMessageRequest("Second"), ByteArrayOutputStream()) }.exceptionOrNull() as Exception?
 				}
 				return if (i < bytes.size) bytes[i++].toInt() else -1
 			}
@@ -268,12 +285,128 @@ class FeatureChatTests {
 
 	@Test
 	fun `messages of an unknown feature are not found`() {
-		assertNull(runCatching { chat.messages(feature.projectId, 999_999) }.getOrNull())
+		assertNull(runCatching { chat.history(feature.projectId, 999_999) }.getOrNull())
 	}
+
+	@Test
+	fun `questions the agent asked are relayed ahead of the tool line and attached to the reply`() {
+		val tool = """{"type":"tool","id":"t1","name":"mcp__app__ask_questions","status":"completed"}"""
+		var setId = 0L
+		val body = OnFirstRead("$SESSION\n$tool\n$DONE\n") { setId = questionSet() }
+		server.expect(requestTo("http://agent/agent/v1/chat")).andRespond { MockClientHttpResponse(body, HttpStatus.OK) }
+
+		val lines = send("Plan it").trim().lines()
+
+		assertEquals(4, lines.size)
+		val relayed = jsonMapper.readTree(lines[1])
+		assertEquals("questions", relayed.get("type").asString())
+		assertEquals(setId, relayed.get("id").asLong())
+		assertEquals("Token", relayed.get("questions").get(0).get("header").asString())
+		assertEquals(tool, lines[2])
+		val reply = messagesOf().last()
+		assertEquals(reply.id, questionRepository.findById(setId).get().afterMessageId)
+		val history = chat.history(feature.projectId, feature.id!!)
+		assertEquals(listOf("message", "message", "questions"), history.map { if (it is ChatItem.Message) "message" else "questions" })
+	}
+
+	@Test
+	fun `structured answers go to the agent as text and answer the set`() {
+		val setId = questionSet()
+		val text = "Answers to your questions:\n1. Token: Keep GIT_TOKEN (recommended)"
+		server.expect(requestTo("http://agent/agent/v1/chat"))
+			.andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.endsWith("\n\n$text")))
+			.andRespond(ndjson(SESSION, DONE))
+
+		chat.send(
+			feature.projectId, feature.id!!,
+			SendMessageRequest(questionsId = setId, answers = listOf(AnswerInput("Token", listOf("Keep GIT_TOKEN"), null))),
+			ByteArrayOutputStream(),
+		)
+
+		server.verify()
+		val user = messagesOf().first()
+		assertEquals(text, user.text)
+		val set = questionRepository.findById(setId).get()
+		assertEquals(QuestionStatus.ANSWERED, set.status)
+		assertEquals(user.id, set.answerMessageId)
+		assertEquals("Keep GIT_TOKEN", jsonMapper.readTree(set.answers).get(0).get("selected").get(0).asString())
+	}
+
+	@Test
+	fun `a typed reply answers the pending set without answers`() {
+		val setId = questionSet()
+		server.expect(requestTo("http://agent/agent/v1/chat")).andRespond(ndjson(SESSION, DONE))
+
+		send("Let's do something else")
+
+		val set = questionRepository.findById(setId).get()
+		assertEquals(QuestionStatus.ANSWERED, set.status)
+		assertNull(set.answers)
+		assertEquals(messagesOf().first().id, set.answerMessageId)
+	}
+
+	@Test
+	fun `bad answers and sets that aren't pending send nothing`() {
+		val setId = questionSet()
+		val out = ByteArrayOutputStream()
+
+		assertThrows<InvalidAnswersException> {
+			chat.send(feature.projectId, feature.id!!, SendMessageRequest(questionsId = setId, answers = listOf(AnswerInput("Token", listOf("Nope"), null))), out)
+		}
+		assertThrows<InvalidAnswersException> {
+			chat.send(feature.projectId, feature.id!!, SendMessageRequest(questionsId = setId, answers = emptyList()), out)
+		}
+		questionRepository.findById(setId).get().let { it.status = QuestionStatus.ANSWERED; questionRepository.saveAndFlush(it) }
+		assertThrows<QuestionsNotPendingException> {
+			chat.send(feature.projectId, feature.id!!, SendMessageRequest(questionsId = setId, answers = listOf(AnswerInput("Token", listOf("New token"), null))), out)
+		}
+		assertThrows<QuestionsNotPendingException> {
+			chat.send(feature.projectId, feature.id!!, SendMessageRequest(questionsId = 999_999, answers = listOf(AnswerInput("Token", listOf("New token"), null))), out)
+		}
+
+		assertEquals(0, out.size())
+		assertEquals(emptyList(), messagesOf())
+	}
+
+	@Test
+	fun `a stopped turn leaves its set unattached and the history places it by time`() {
+		val tool = """{"type":"tool","id":"t1","name":"mcp__app__ask_questions","status":"completed"}"""
+		val cancelled = """{"type":"cancelled","sessionId":"$SESSION_ID"}"""
+		var setId = 0L
+		val body = OnFirstRead("$SESSION\n$tool\n$cancelled\n") { setId = questionSet() }
+		server.expect(requestTo("http://agent/agent/v1/chat")).andRespond { MockClientHttpResponse(body, HttpStatus.OK) }
+
+		send("Plan it")
+
+		assertNull(questionRepository.findById(setId).get().afterMessageId)
+		val history = chat.history(feature.projectId, feature.id!!)
+		assertEquals(2, history.size)
+		assertEquals(setId, (history[1] as ChatItem.Questions).set.id)
+	}
+
+	/** Stores a pending one-question set, as the agent's tool would through the API. */
+	private fun questionSet(): Long = questionService.create(
+		feature.projectId, feature.id!!,
+		QuestionsRequest(listOf(QuestionInput("Token", "Which token?", false, listOf(OptionInput("Keep GIT_TOKEN", "a"), OptionInput("New token", "b"))))),
+	).id!!
+
+	/** Serves [text], running [first] just before the first byte is read. */
+	private class OnFirstRead(text: String, private val first: () -> Unit) : InputStream() {
+		private val bytes = text.toByteArray()
+		private var i = 0
+
+		override fun read(): Int {
+			if (i == 0) first()
+			return if (i < bytes.size) bytes[i++].toInt() else -1
+		}
+	}
+
+	/** The stored messages in the history, without question sets. */
+	private fun messagesOf() = chat.history(feature.projectId, feature.id!!).filterIsInstance<ChatItem.Message>().map { it.message }
 
 	private fun send(text: String): String {
 		val out = ByteArrayOutputStream()
-		chat.send(feature.projectId, feature.id!!, text, out)
+		chat.send(feature.projectId, feature.id!!, SendMessageRequest(text), out)
 		return out.toString(Charsets.UTF_8)
 	}
 

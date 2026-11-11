@@ -24,6 +24,8 @@ import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.TaskNotFoundException
+import com.toptier.custom.feature.exception.InvalidAnswersException
+import com.toptier.custom.feature.exception.QuestionsNotPendingException
 import com.toptier.custom.feature.exception.InvalidQuestionsException
 import com.toptier.custom.feature.exception.TasksUnfinishedException
 import com.toptier.custom.feature.exception.RestackNotNeededException
@@ -108,6 +110,8 @@ class FeatureExceptionHandler {
 		is TasksUnfinishedException -> problem(HttpStatus.CONFLICT, "tasks_unfinished", ex.message!!)
 			.apply { setProperty("unfinished", ex.unfinished) }
 		is InvalidQuestionsException -> problem(HttpStatus.BAD_REQUEST, "invalid_questions", ex.message!!)
+		is InvalidAnswersException -> problem(HttpStatus.BAD_REQUEST, "invalid_answers", ex.message!!)
+		is QuestionsNotPendingException -> problem(HttpStatus.CONFLICT, "questions_not_pending", ex.message!!)
 		is TaskNotFoundException -> problem(HttpStatus.NOT_FOUND, "task_not_found", ex.message!!)
 		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 	}
