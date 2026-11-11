@@ -319,13 +319,13 @@ as they are (the new tools are documented in `src/instructions.md`, not the lock
 | 07 | [spec](tasks/07-api-feature-complete/spec.md) | [#66](https://github.com/fahadzia88/factory/pull/66) | pr open (factory-3d) |
 | 08 | [spec](tasks/08-api-question-store/spec.md) | [#67](https://github.com/fahadzia88/factory/pull/67) | pr open (factory-3d) |
 | 09 | [spec](tasks/09-api-question-chat/spec.md) | [#68](https://github.com/fahadzia88/factory/pull/68) | pr open (factory-3d) |
-| 10 | [spec](tasks/10-app-feature-tasks/spec.md) | | in progress (factory-3d) |
-| 11 | [spec](tasks/11-app-question-cards/spec.md) | | not started |
-| 12 | [spec](tasks/12-agent-ask-questions/spec.md) | | not started |
-| 13 | [spec](tasks/13-agent-task-files/spec.md) | | not started |
-| 14 | [spec](tasks/14-agent-task-flow/spec.md) | | not started |
-| 15 | [spec](tasks/15-infra-implementation-skill/spec.md) | | not started |
-| 16 | [spec](tasks/16-app-chat-markdown/spec.md) | | not started |
+| 10 | [spec](tasks/10-app-feature-tasks/spec.md) | [#69](https://github.com/fahadzia88/factory/pull/69) | pr open (factory-3d) |
+| 11 | [spec](tasks/11-app-question-cards/spec.md) | [#70](https://github.com/fahadzia88/factory/pull/70) | pr open (factory-3d) |
+| 12 | [spec](tasks/12-agent-ask-questions/spec.md) | [#71](https://github.com/fahadzia88/factory/pull/71) | pr open (factory-3d) |
+| 13 | [spec](tasks/13-agent-task-files/spec.md) | [#72](https://github.com/fahadzia88/factory/pull/72) | pr open (factory-3d) |
+| 14 | [spec](tasks/14-agent-task-flow/spec.md) | [#73](https://github.com/fahadzia88/factory/pull/73) | pr open (factory-3d) |
+| 15 | [spec](tasks/15-infra-implementation-skill/spec.md) | [#74](https://github.com/fahadzia88/factory/pull/74) | pr open (factory-3d) |
+| 16 | [spec](tasks/16-app-chat-markdown/spec.md) | [#75](https://github.com/fahadzia88/factory/pull/75) | pr open (factory-3d) |
 
 ## Changelog
 
