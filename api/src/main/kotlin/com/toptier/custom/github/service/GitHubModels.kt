@@ -38,6 +38,7 @@ data class GitHubRef(
 	val ref: String,
 	val label: String,
 	val repo: GitHubRefRepo?,
+	val sha: String? = null,
 )
 
 /** The repository a ref lives in; `null` when a fork was deleted. */
@@ -53,3 +54,18 @@ data class GitHubFile(
 	val patch: String? = null,
 	@JsonProperty("blob_url") val blobUrl: String,
 )
+
+/** The check runs on a commit. */
+data class GitHubCheckRuns(@JsonProperty("check_runs") val checkRuns: List<GitHubCheckRun>)
+
+/** One check run; [conclusion] is null until it completes. */
+data class GitHubCheckRun(
+	val name: String,
+	val status: String,
+	val conclusion: String? = null,
+	@JsonProperty("html_url") val htmlUrl: String? = null,
+	val output: GitHubCheckOutput? = null,
+)
+
+/** A check run's result text. */
+data class GitHubCheckOutput(val title: String? = null, val summary: String? = null)
