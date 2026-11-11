@@ -88,3 +88,17 @@ class TaskNotPushedException(branch: String) : FeatureException("Push $branch be
 
 /** A request body field is missing or invalid; the message names it. */
 class InvalidFeatureRequestException(message: String) : FeatureException(message)
+
+/** The task is already built on its effective base. */
+class RestackNotNeededException(number: Int) : FeatureException("Task %02d is already up to date with its base.".format(number))
+
+/** The task's worktree has uncommitted changes. */
+class TaskDirtyException(branch: String) :
+	FeatureException("$branch has uncommitted changes. Commit or discard them before restacking.")
+
+/** The task's pull request was merged or closed. */
+class TaskClosedException(number: Int) : FeatureException("Task %02d's pull request is merged or closed.".format(number))
+
+/** The rebase hit conflicts in [files]; nothing was pushed and the branch is as before. */
+class RestackConflictException(val files: List<String>) :
+	FeatureException("The rebase conflicts in ${files.joinToString(", ")}. Nothing was pushed; resolve it by hand.")

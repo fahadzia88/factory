@@ -5,6 +5,7 @@ import com.toptier.custom.feature.dto.StartTaskRequest
 import com.toptier.custom.feature.dto.TaskResponse
 import com.toptier.custom.feature.service.FeatureTasks
 import com.toptier.custom.feature.service.TaskPulls
+import com.toptier.custom.feature.service.TaskRestacker
 import com.toptier.custom.feature.service.TaskStarter
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -22,6 +23,7 @@ class FeatureTaskController(
 	private val featureTasks: FeatureTasks,
 	private val taskStarter: TaskStarter,
 	private val taskPulls: TaskPulls,
+	private val taskRestacker: TaskRestacker,
 ) {
 
 	/** Every task, row 0 (the docs branch) first. */
@@ -48,4 +50,9 @@ class FeatureTaskController(
 		@RequestBody(required = false) request: OpenPullRequest?,
 	): ResponseEntity<TaskResponse> =
 		ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(taskPulls.open(id, featureId, n, request?.task, request?.acs)))
+
+	/** Rebuilds task [n] on its effective base, pushes it with a lease and retargets its pull request. */
+	@PostMapping("/{n}/restack")
+	fun restack(@PathVariable id: Long, @PathVariable featureId: Long, @PathVariable n: Int): TaskResponse =
+		TaskResponse.from(taskRestacker.restack(id, featureId, n))
 }

@@ -24,6 +24,10 @@ import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.TaskNotFoundException
+import com.toptier.custom.feature.exception.RestackNotNeededException
+import com.toptier.custom.feature.exception.TaskDirtyException
+import com.toptier.custom.feature.exception.TaskClosedException
+import com.toptier.custom.feature.exception.RestackConflictException
 import com.toptier.custom.feature.exception.PullExistsException
 import com.toptier.custom.feature.exception.TaskNotPushedException
 import com.toptier.custom.feature.exception.InvalidFeatureRequestException
@@ -94,6 +98,11 @@ class FeatureExceptionHandler {
 		is PullExistsException -> problem(HttpStatus.CONFLICT, "pull_exists", ex.message!!)
 		is TaskNotPushedException -> problem(HttpStatus.CONFLICT, "task_not_pushed", ex.message!!)
 		is InvalidFeatureRequestException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
+		is RestackNotNeededException -> problem(HttpStatus.CONFLICT, "restack_not_needed", ex.message!!)
+		is TaskDirtyException -> problem(HttpStatus.CONFLICT, "task_dirty", ex.message!!)
+		is TaskClosedException -> problem(HttpStatus.CONFLICT, "task_closed", ex.message!!)
+		is RestackConflictException -> problem(HttpStatus.CONFLICT, "restack_conflict", ex.message!!)
+			.apply { setProperty("files", ex.files) }
 		is TaskNotFoundException -> problem(HttpStatus.NOT_FOUND, "task_not_found", ex.message!!)
 		is BlankMessageException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
 	}

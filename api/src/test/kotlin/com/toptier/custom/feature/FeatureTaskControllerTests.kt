@@ -14,6 +14,7 @@ import com.toptier.custom.feature.exception.SpecsNotApprovedException
 import com.toptier.custom.feature.exception.TaskExistsException
 import com.toptier.custom.feature.exception.TaskOutOfOrderException
 import com.toptier.custom.feature.service.TaskPulls
+import com.toptier.custom.feature.service.TaskRestacker
 import com.toptier.custom.feature.service.TaskStarter
 import com.toptier.custom.feature.exception.TaskNotFoundException
 import com.toptier.custom.feature.service.FeatureTasks
@@ -57,6 +58,33 @@ class FeatureTaskControllerTests {
 
 	@MockitoBean
 	lateinit var taskPulls: TaskPulls
+
+	@MockitoBean
+	lateinit var taskRestacker: TaskRestacker
+
+	@Test
+	fun `restack answers the task and maps its refusals`() {
+		given(taskRestacker.restack(12, 21, 2)).willReturn(
+			TaskView(task(2, "feat/006-x/02-app-b", "main", pullNumber = 12), null, pull(12), null, false),
+		)
+		given(taskRestacker.restack(12, 21, 3)).willThrow(com.toptier.custom.feature.exception.RestackConflictException(listOf("a.txt")))
+		given(taskRestacker.restack(12, 21, 4)).willThrow(com.toptier.custom.feature.exception.TaskDirtyException("b"))
+		given(taskRestacker.restack(12, 21, 5)).willThrow(com.toptier.custom.feature.exception.TaskClosedException(5))
+		given(taskRestacker.restack(12, 21, 6)).willThrow(com.toptier.custom.feature.exception.RestackNotNeededException(6))
+
+		mockMvc.post("$BASE/2/restack").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/2/restack") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.baseBranch") { value("main") }
+		}
+		mockMvc.post("$BASE/3/restack") { auth() }.andExpect {
+			problem(409, "restack_conflict")
+			jsonPath("$.files[0]") { value("a.txt") }
+		}
+		mockMvc.post("$BASE/4/restack") { auth() }.andExpect { problem(409, "task_dirty") }
+		mockMvc.post("$BASE/5/restack") { auth() }.andExpect { problem(409, "task_closed") }
+		mockMvc.post("$BASE/6/restack") { auth() }.andExpect { problem(409, "restack_not_needed") }
+	}
 
 	@Test
 	fun `opening a pull request answers 201 and maps its refusals`() {
