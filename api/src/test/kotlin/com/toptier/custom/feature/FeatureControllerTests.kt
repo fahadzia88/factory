@@ -20,7 +20,10 @@ import com.toptier.custom.feature.exception.InvalidStepException
 import com.toptier.custom.feature.exception.InvalidStepTypeException
 import com.toptier.custom.feature.exception.StepNotFoundException
 import com.toptier.custom.feature.exception.WorkflowInvalidException
+import com.toptier.custom.feature.service.CompletedFeature
+import com.toptier.custom.feature.service.FeatureCompleter
 import com.toptier.custom.feature.service.FeatureStarter
+import com.toptier.custom.feature.service.KeptWorktree
 import com.toptier.custom.feature.service.StartedFeature
 import com.toptier.custom.feature.service.FeatureProgress
 import com.toptier.custom.feature.service.StepChanges
@@ -66,6 +69,29 @@ class FeatureControllerTests {
 
 	@MockitoBean
 	lateinit var featureStarter: FeatureStarter
+
+	@MockitoBean
+	lateinit var featureCompleter: FeatureCompleter
+
+	@Test
+	fun `complete answers the feature with kept worktrees, or what's unfinished`() {
+		given(featureCompleter.complete(12, 21)).willReturn(CompletedFeature(view(null), listOf(KeptWorktree("feat/004-features/02-app-b", "busy"))))
+		given(featureCompleter.complete(12, 22)).willThrow(
+			com.toptier.custom.feature.exception.TasksUnfinishedException(listOf(com.toptier.custom.feature.exception.UnfinishedTask(2, "pull request not merged (open)"))),
+		)
+
+		mockMvc.post("$BASE/21/complete").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/complete") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.keptWorktrees[0].branch") { value("feat/004-features/02-app-b") }
+			jsonPath("$.keptWorktrees[0].reason") { value("busy") }
+		}
+		mockMvc.post("$BASE/22/complete") { auth() }.andExpect {
+			problem(409, "tasks_unfinished")
+			jsonPath("$.unfinished[0].task") { value(2) }
+			jsonPath("$.unfinished[0].reason") { value("pull request not merged (open)") }
+		}
+	}
 
 	@MockitoBean
 	lateinit var featureProgress: FeatureProgress

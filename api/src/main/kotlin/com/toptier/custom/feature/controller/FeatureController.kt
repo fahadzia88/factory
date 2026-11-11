@@ -3,10 +3,12 @@ package com.toptier.custom.feature.controller
 import com.toptier.custom.feature.dto.AddStepRequest
 import com.toptier.custom.feature.dto.CreateFeatureRequest
 import com.toptier.custom.feature.dto.FeatureResponse
+import com.toptier.custom.feature.dto.KeptWorktreeResponse
 import com.toptier.custom.feature.dto.FeatureStepResponse
 import com.toptier.custom.feature.dto.FeatureSummaryResponse
 import com.toptier.custom.feature.dto.SetStatusRequest
 import com.toptier.custom.feature.dto.UpdateStepRequest
+import com.toptier.custom.feature.service.FeatureCompleter
 import com.toptier.custom.feature.service.FeatureStarter
 import com.toptier.custom.feature.service.FeatureProgress
 import com.toptier.custom.feature.service.FeatureService
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 class FeatureController(
 	private val featureService: FeatureService,
 	private val featureStarter: FeatureStarter,
+	private val featureCompleter: FeatureCompleter,
 	private val featureProgress: FeatureProgress,
 ) {
 
@@ -75,5 +78,13 @@ class FeatureController(
 		val changes = StepChanges(request.status, request.title, request.documentPath)
 		val (step, workflow) = featureProgress.updateStep(id, featureId, stepId, changes)
 		return FeatureStepResponse.from(step, workflow)
+	}
+
+	/** Finishes the feature once every pull request merged: `done`, and the task worktrees removed. */
+	@PostMapping("/{featureId}/complete")
+	fun complete(@PathVariable id: Long, @PathVariable featureId: Long): FeatureResponse {
+		val completed = featureCompleter.complete(id, featureId)
+		return FeatureResponse.from(completed.view)
+			.copy(keptWorktrees = completed.kept.map { KeptWorktreeResponse(it.branch, it.reason) })
 	}
 }

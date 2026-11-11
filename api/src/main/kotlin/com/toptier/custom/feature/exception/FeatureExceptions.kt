@@ -102,3 +102,10 @@ class TaskClosedException(number: Int) : FeatureException("Task %02d's pull requ
 /** The rebase hit conflicts in [files]; nothing was pushed and the branch is as before. */
 class RestackConflictException(val files: List<String>) :
 	FeatureException("The rebase conflicts in ${files.joinToString(", ")}. Nothing was pushed; resolve it by hand.")
+
+/** One task that keeps the feature from completing, and why. */
+data class UnfinishedTask(val task: Int, val reason: String)
+
+/** Some tasks aren't merged yet; [unfinished] says which and why. */
+class TasksUnfinishedException(val unfinished: List<UnfinishedTask>) :
+	FeatureException("The feature can't be completed until every task's pull request is merged.")
