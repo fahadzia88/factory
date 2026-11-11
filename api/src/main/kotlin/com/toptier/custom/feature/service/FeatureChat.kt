@@ -5,8 +5,10 @@ import com.toptier.custom.feature.config.FeatureProperties
 import com.toptier.custom.feature.domain.Feature
 import com.toptier.custom.feature.domain.FeatureMessage
 import com.toptier.custom.feature.domain.FeatureMessageRepository
+import com.toptier.custom.feature.domain.FeatureQuestion
 import com.toptier.custom.feature.domain.FeatureRepository
 import com.toptier.custom.feature.domain.MessageRole
+import com.toptier.custom.feature.dto.SendMessageRequest
 import com.toptier.custom.feature.exception.AgentUnavailableException
 import com.toptier.custom.feature.exception.BlankMessageException
 import com.toptier.custom.feature.exception.ChatBusyException
@@ -25,7 +27,21 @@ import java.io.IOException
 import java.io.OutputStream
 import java.net.SocketTimeoutException
 import java.time.Clock
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+
+/** One item of a feature's chat history. */
+sealed interface ChatItem {
+	val createdAt: Instant
+
+	data class Message(val message: FeatureMessage) : ChatItem {
+		override val createdAt: Instant get() = message.createdAt
+	}
+
+	data class Questions(val set: FeatureQuestion) : ChatItem {
+		override val createdAt: Instant get() = set.createdAt
+	}
+}
 
 /**
  * A feature's chat with the agent. Each message goes to the agent's `POST /agent/v1/chat` with a context
@@ -37,6 +53,7 @@ class FeatureChat(
 	private val featureService: FeatureService,
 	private val features: FeatureRepository,
 	private val messages: FeatureMessageRepository,
+	private val questions: FeatureQuestions,
 	@Qualifier("featureAgentRestClient") private val client: RestClient,
 	private val jsonMapper: JsonMapper,
 	private val props: FeatureProperties,
@@ -48,25 +65,48 @@ class FeatureChat(
 	/** Features with a turn open; a second message waits for the first. */
 	private val busy = ConcurrentHashMap.newKeySet<Long>()
 
-	/** The feature's chat, oldest first. */
-	fun messages(projectId: Long, featureId: Long): List<FeatureMessage> {
+	/** The feature's chat, oldest first: each message followed by the question sets asked in it. */
+	fun history(projectId: Long, featureId: Long): List<ChatItem> {
 		featureService.load(projectId, featureId)
-		return messages.findByFeatureIdOrderByCreatedAtAscIdAsc(featureId)
+		val stored = messages.findByFeatureIdOrderByCreatedAtAscIdAsc(featureId)
+		val ids = stored.mapNotNull { it.id }.toSet()
+		val sets = questions.all(featureId)
+		val attached = sets.filter { it.afterMessageId in ids }.groupBy { it.afterMessageId }
+		val items = mutableListOf<ChatItem>()
+		for (message in stored) {
+			items += ChatItem.Message(message)
+			attached[message.id].orEmpty().forEach { items += ChatItem.Questions(it) }
+		}
+		// Sets never attached to a reply (the turn failed or was stopped) go by time
+		for (set in sets.filter { it.afterMessageId !in ids }) {
+			val at = items.indexOfFirst { it.createdAt.isAfter(set.createdAt) }
+			if (at < 0) items += ChatItem.Questions(set) else items.add(at, ChatItem.Questions(set))
+		}
+		return items
 	}
 
 	/**
-	 * Sends [raw] to the agent and writes its events to [out], one NDJSON line each, flushed as they come.
-	 * Throws before writing anything when the message is blank, the chat is busy or the agent can't take it.
+	 * Sends the user's message, or their answers to the pending question set, to the agent and writes its events to
+	 * [out], one NDJSON line each, flushed as they come. Throws before writing anything when the message is blank,
+	 * the answers don't fit, the chat is busy or the agent can't take it.
 	 */
-	fun send(projectId: Long, featureId: Long, raw: String?, out: OutputStream) {
+	fun send(projectId: Long, featureId: Long, request: SendMessageRequest, out: OutputStream) {
 		val feature = featureService.load(projectId, featureId)
-		val text = raw?.trim()
-		if (text.isNullOrEmpty()) throw BlankMessageException()
+		val answering = request.questionsId?.let { questions.requirePending(featureId, it) }
+		val answers = answering?.let { AnswerFormatter.validate(questions.questionsOf(it), request.answers) }
+		val text = if (answering != null) {
+			AnswerFormatter.format(questions.questionsOf(answering), answers!!)
+		} else {
+			request.message?.trim()?.takeIf { it.isNotEmpty() } ?: throw BlankMessageException()
+		}
 		if (!busy.add(featureId)) throw ChatBusyException()
 		try {
+			val lastSet = questions.lastId(featureId)
 			open(feature, text).use { stream ->
-				messages.save(message(featureId, MessageRole.USER, text))
-				relay(feature, stream, out)
+				val sent = messages.save(message(featureId, MessageRole.USER, text))
+				if (answering != null) questions.answer(answering, answers!!, sent.id!!)
+				else questions.answerPendingByTyping(featureId, sent.id!!)
+				relay(feature, stream, out, lastSet)
 			}
 		} finally {
 			busy.remove(featureId)
@@ -86,8 +126,9 @@ class FeatureChat(
 		}
 	}
 
-	private fun relay(feature: Feature, stream: AgentChatStream, out: OutputStream) {
+	private fun relay(feature: Feature, stream: AgentChatStream, out: OutputStream, lastSet: Long) {
 		var sessionId = feature.agentSessionId
+		val turnSets = mutableListOf<Long>()
 		fun write(line: String): Boolean = try {
 			out.write("$line\n".toByteArray(Charsets.UTF_8))
 			out.flush()
@@ -116,7 +157,19 @@ class FeatureChat(
 				sessionId = event.sessionId
 				features.updateAgentSessionId(feature.id!!, sessionId)
 			}
-			if (event.type == "done") messages.save(message(feature.id!!, MessageRole.ASSISTANT, event.text.orEmpty()))
+			if (event.type == "tool" && event.name == ASK_QUESTIONS && event.status == "completed") {
+				// The agent's tool stored the set through the API; the app gets it ahead of the tool line
+				val set = questions.createdAfter(feature.id!!, lastSet)?.takeIf { it.id !in turnSets }
+				if (set != null) {
+					turnSets += set.id!!
+					val line = mapOf("type" to "questions", "id" to set.id, "questions" to questions.payloadOf(set).get("questions"))
+					if (!write(jsonMapper.writeValueAsString(line))) return
+				}
+			}
+			if (event.type == "done") {
+				val reply = messages.save(message(feature.id!!, MessageRole.ASSISTANT, event.text.orEmpty()))
+				questions.attach(turnSets, reply.id!!)
+			}
 			if (!write(event.line)) return
 			if (stream.terminal != null) return
 		}
@@ -179,6 +232,10 @@ class FeatureChat(
 	private fun contextLine(feature: Feature): String {
 		val code = FeatureNaming.code(feature.number, feature.slug)
 		return "[Feature context: projectId=${feature.projectId} featureId=${feature.id} code=$code. Use the feature_* tools with these ids.]"
+	}
+
+	private companion object {
+		const val ASK_QUESTIONS = "mcp__app__ask_questions"
 	}
 
 	private fun message(featureId: Long, role: MessageRole, text: String) = FeatureMessage().apply {

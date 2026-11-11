@@ -8,6 +8,7 @@ import com.toptier.custom.feature.service.FeatureView
 import com.toptier.custom.feature.service.FeatureWorktree
 import com.toptier.custom.feature.service.Workflow
 import com.toptier.custom.feature.service.WorkflowStep
+import tools.jackson.databind.JsonNode
 import java.time.Instant
 
 /** Body of `POST /api/projects/{id}/features`. */
@@ -32,14 +33,41 @@ data class AddStepRequest(val type: String? = null, val title: String? = null, v
 data class UpdateStepRequest(val status: String? = null, val title: String? = null, val documentPath: String? = null)
 
 /** Body of `POST …/features/{featureId}/messages`. */
-data class SendMessageRequest(val message: String? = null)
+data class SendMessageRequest(
+	val message: String? = null,
+	/** Answers the pending question set with this id instead of sending [message]. */
+	val questionsId: Long? = null,
+	val answers: List<AnswerInput>? = null,
+)
+
+/** An answer to one question: the chosen labels, free "Other" text, or both. */
+data class AnswerInput(val header: String? = null, val selected: List<String>? = null, val other: String? = null)
+
+/** One item of a feature's chat history: a message or a question set. */
+sealed interface ChatItemResponse {
+	val kind: String
+}
 
 /** One stored chat message; [role] is `user` or `assistant`. */
-data class FeatureMessageResponse(val id: Long, val role: String, val text: String, val createdAt: Instant) {
+data class FeatureMessageResponse(val id: Long, val role: String, val text: String, val createdAt: Instant) : ChatItemResponse {
+	override val kind = "message"
+
 	companion object {
 		fun from(message: FeatureMessage) =
 			FeatureMessageResponse(message.id!!, message.role.name.lowercase(), message.text, message.createdAt)
 	}
+}
+
+/** A question set the agent asked; [status] is `pending`, `answered` or `superseded`. */
+data class QuestionsItemResponse(
+	val id: Long,
+	val status: String,
+	val questions: JsonNode,
+	val answers: JsonNode?,
+	val answerMessageId: Long?,
+	val createdAt: Instant,
+) : ChatItemResponse {
+	override val kind = "questions"
 }
 
 /** Whether a running turn was stopped. */

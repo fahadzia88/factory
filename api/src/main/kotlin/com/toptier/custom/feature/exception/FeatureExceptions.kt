@@ -112,3 +112,9 @@ class TasksUnfinishedException(val unfinished: List<UnfinishedTask>) :
 
 /** A question set breaks the rules; the message names the question and the problem. */
 class InvalidQuestionsException(message: String) : FeatureException(message)
+
+/** Answers that don't fit the questions; the message names the question and the problem. */
+class InvalidAnswersException(message: String) : FeatureException(message)
+
+/** The question set isn't waiting for answers (answered, replaced, or not this feature's). */
+class QuestionsNotPendingException : FeatureException("Those questions aren't waiting for answers any more.")

@@ -7,8 +7,10 @@ import com.toptier.custom.feature.dto.OptionInput
 import com.toptier.custom.feature.dto.QuestionInput
 import com.toptier.custom.feature.dto.QuestionsRequest
 import com.toptier.custom.feature.exception.InvalidQuestionsException
+import com.toptier.custom.feature.exception.QuestionsNotPendingException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
 import java.time.Clock
 
@@ -34,6 +36,70 @@ class FeatureQuestions(
 			createdAt = clock.instant()
 		})
 	}
+
+	/** The feature's newest pending set, or null. */
+	fun pending(featureId: Long): FeatureQuestion? =
+		questions.findFirstByFeatureIdAndStatusOrderByIdDesc(featureId, QuestionStatus.PENDING)
+
+	/** The highest set id the feature has, 0 when none. */
+	fun lastId(featureId: Long): Long = questions.findByFeatureIdOrderByIdAsc(featureId).lastOrNull()?.id ?: 0
+
+	/** The feature's newest pending set created after [id], or null. */
+	fun createdAfter(featureId: Long, id: Long): FeatureQuestion? = pending(featureId)?.takeIf { it.id!! > id }
+
+	/** Marks [set] answered with [answers] by the user message [messageId]. */
+	@Transactional
+	fun answer(set: FeatureQuestion, answers: List<Answer>, messageId: Long) {
+		set.status = QuestionStatus.ANSWERED
+		set.answers = jsonMapper.writeValueAsString(answers)
+		set.answerMessageId = messageId
+		set.answeredAt = clock.instant()
+		questions.saveAndFlush(set)
+	}
+
+	/** A typed reply while a set is pending answers it, with no structured answers. */
+	@Transactional
+	fun answerPendingByTyping(featureId: Long, messageId: Long) {
+		val set = pending(featureId) ?: return
+		set.status = QuestionStatus.ANSWERED
+		set.answerMessageId = messageId
+		set.answeredAt = clock.instant()
+		questions.saveAndFlush(set)
+	}
+
+	/** Records that the sets [ids] were asked in the assistant message [messageId]. */
+	@Transactional
+	fun attach(ids: Collection<Long>, messageId: Long) {
+		for (id in ids) {
+			val set = questions.findById(id).orElse(null) ?: continue
+			set.afterMessageId = messageId
+			questions.saveAndFlush(set)
+		}
+	}
+
+	/** The questions of a stored set. */
+	fun questionsOf(set: FeatureQuestion): List<Question> = payloadOf(set).get("questions").toList().map { q ->
+		Question(
+			header = q.get("header").asString(),
+			question = q.get("question").asString(),
+			multiSelect = q.get("multiSelect")?.asBoolean() ?: false,
+			options = q.get("options").toList().map { QuestionOption(it.get("label").asString(), it.get("description").asString()) },
+		)
+	}
+
+	/** The stored payload, `{ "questions": [ … ] }`. */
+	fun payloadOf(set: FeatureQuestion): JsonNode = jsonMapper.readTree(set.payload)
+
+	/** The stored answers, or null. */
+	fun answersOf(set: FeatureQuestion): JsonNode? = set.answers?.let(jsonMapper::readTree)
+
+	/** The feature's sets, oldest first. */
+	fun all(featureId: Long): List<FeatureQuestion> = questions.findByFeatureIdOrderByIdAsc(featureId)
+
+	/** The feature's set [id] while it's pending; throws [QuestionsNotPendingException]. */
+	fun requirePending(featureId: Long, id: Long): FeatureQuestion =
+		questions.findByIdAndFeatureId(id, featureId)?.takeIf { it.status == QuestionStatus.PENDING }
+			?: throw QuestionsNotPendingException()
 }
 
 /** A question as stored: trimmed, with `multiSelect` set. */
