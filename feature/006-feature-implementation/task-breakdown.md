@@ -309,16 +309,17 @@ as they are (the new tools are documented in `src/instructions.md`, not the lock
 
 | #  | Spec | PR | Status |
 | -- | ---- | -- | ------ |
-| 01 | [spec](tasks/01-infra-drop-agent-github-token/spec.md) | | not started |
-| 02 | [spec](tasks/02-api-github-pull-client/spec.md) | | not started |
-| 03 | [spec](tasks/03-api-task-foundation/spec.md) | | not started |
-| 04 | [spec](tasks/04-api-task-start/spec.md) | | not started |
-| 05 | [spec](tasks/05-api-task-pull/spec.md) | | not started |
-| 06 | [spec](tasks/06-api-task-restack/spec.md) | | not started |
-| 07 | [spec](tasks/07-api-feature-complete/spec.md) | | not started |
-| 08 | [spec](tasks/08-api-question-store/spec.md) | | not started |
-| 09 | [spec](tasks/09-api-question-chat/spec.md) | | not started |
-| 10 | [spec](tasks/10-app-feature-tasks/spec.md) | | not started |
+| 00 | — | [#58](https://github.com/fahadzia88/factory/pull/58) | pr open |
+| 01 | [spec](tasks/01-infra-drop-agent-github-token/spec.md) | [#59](https://github.com/fahadzia88/factory/pull/59) | pr open (factory-3d) |
+| 02 | [spec](tasks/02-api-github-pull-client/spec.md) | [#60](https://github.com/fahadzia88/factory/pull/60) | pr open (factory-3d) |
+| 03 | [spec](tasks/03-api-task-foundation/spec.md) | [#61](https://github.com/fahadzia88/factory/pull/61) | pr open (factory-3d) |
+| 04 | [spec](tasks/04-api-task-start/spec.md) | [#62](https://github.com/fahadzia88/factory/pull/62) | pr open (factory-3d) |
+| 05 | [spec](tasks/05-api-task-pull/spec.md) | [#63](https://github.com/fahadzia88/factory/pull/63) | pr open (factory-3d) |
+| 06 | [spec](tasks/06-api-task-restack/spec.md) | [#65](https://github.com/fahadzia88/factory/pull/65) | pr open (factory-3d) |
+| 07 | [spec](tasks/07-api-feature-complete/spec.md) | [#66](https://github.com/fahadzia88/factory/pull/66) | pr open (factory-3d) |
+| 08 | [spec](tasks/08-api-question-store/spec.md) | [#67](https://github.com/fahadzia88/factory/pull/67) | pr open (factory-3d) |
+| 09 | [spec](tasks/09-api-question-chat/spec.md) | [#68](https://github.com/fahadzia88/factory/pull/68) | pr open (factory-3d) |
+| 10 | [spec](tasks/10-app-feature-tasks/spec.md) | | in progress (factory-3d) |
 | 11 | [spec](tasks/11-app-question-cards/spec.md) | | not started |
 | 12 | [spec](tasks/12-agent-ask-questions/spec.md) | | not started |
 | 13 | [spec](tasks/13-agent-task-files/spec.md) | | not started |
