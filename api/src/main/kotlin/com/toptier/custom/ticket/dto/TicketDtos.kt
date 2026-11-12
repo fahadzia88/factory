@@ -2,6 +2,7 @@ package com.toptier.custom.ticket.dto
 
 import com.toptier.custom.ticket.domain.Ticket
 import com.toptier.custom.ticket.domain.TicketEvent
+import com.toptier.custom.ticket.domain.TicketMessage
 import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.domain.TicketType
 import com.toptier.custom.ticket.service.TicketDetailsView
@@ -36,6 +37,19 @@ data class CommitTicketRequest(val message: String? = null)
 
 /** What a commit did: [sha] is null, and [committed] false, when there was nothing to commit. */
 data class CommitTicketResponse(val committed: Boolean, val sha: String?)
+
+/** Body of `POST …/tickets/{ticketId}/messages`. */
+data class SendTicketMessageRequest(val message: String? = null)
+
+/** One stored chat message; [role] is `user` or `assistant`. */
+data class TicketMessageResponse(val id: Long, val role: String, val text: String, val createdAt: Instant) {
+	companion object {
+		fun from(message: TicketMessage) = TicketMessageResponse(message.id!!, message.role.name.lowercase(), message.text, message.createdAt)
+	}
+}
+
+/** Whether a running turn was stopped. */
+data class TicketCancelResponse(val cancelled: Boolean)
 
 /** Body of `POST …/tickets/{ticketId}/pull`; a blank [title] means `#<number> <title>`. */
 data class OpenTicketPullRequest(val title: String? = null, val replaceLink: Boolean? = null)
