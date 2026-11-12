@@ -1,7 +1,7 @@
 ---
 feature: 007-bugs-updates
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 ---
 
 # bugs-updates: task breakdown
@@ -315,3 +315,4 @@ changes: `chat.ts`, `server.ts`, `agent/README.md` and `components/agent/*` stay
 ## Changelog
 
 - 2026-11-11 — Created.
+- 2026-11-12 — Approved.
