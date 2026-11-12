@@ -5,6 +5,7 @@ import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.dto.CreateTicketRequest
 import com.toptier.custom.ticket.dto.SetTicketStatusRequest
 import com.toptier.custom.ticket.dto.StatusInfoResponse
+import com.toptier.custom.ticket.dto.TicketDetailsResponse
 import com.toptier.custom.ticket.dto.TicketEventResponse
 import com.toptier.custom.ticket.dto.TicketResponse
 import com.toptier.custom.ticket.service.TicketService
@@ -77,6 +78,16 @@ class TicketController(
 	fun retryWorkspace(@PathVariable id: Long, @PathVariable ticketId: Long): TicketResponse =
 		respond(tickets.retryWorkspace(id, ticketId))
 
+	/** The ticket's `details.md`, read from its worktree. */
+	@GetMapping("/{ticketId}/details")
+	fun details(@PathVariable id: Long, @PathVariable ticketId: Long): TicketDetailsResponse =
+		TicketDetailsResponse.from(tickets.details(id, ticketId))
+
+	/** Accepts the investigation, which lets the agent change code. */
+	@PostMapping("/{ticketId}/approve")
+	fun approve(@PathVariable id: Long, @PathVariable ticketId: Long): TicketResponse =
+		respond(tickets.approve(id, ticketId))
+
 	/** The ticket's history, oldest first. */
 	@GetMapping("/{ticketId}/history")
 	fun history(@PathVariable id: Long, @PathVariable ticketId: Long): List<TicketEventResponse> =
@@ -84,5 +95,5 @@ class TicketController(
 
 	/** The ticket as JSON; changes only reach active projects, so [archived] is true only when reading. */
 	private fun respond(ticket: Ticket, archived: Boolean = false): TicketResponse =
-		TicketResponse.from(ticket, archived, tickets.worktreeOf(ticket))
+		TicketResponse.from(ticket, archived, tickets.worktreeOf(ticket), tickets.hasFindings(ticket))
 }

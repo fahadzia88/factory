@@ -10,7 +10,10 @@ import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
 import com.toptier.custom.checkout.exception.describe
 import com.toptier.custom.project.exception.ProjectNotFoundException
+import com.toptier.custom.ticket.exception.AlreadyApprovedException
 import com.toptier.custom.ticket.exception.InvalidTicketException
+import com.toptier.custom.ticket.exception.NoFindingsException
+import com.toptier.custom.ticket.exception.WorkspaceMissingException
 import com.toptier.custom.ticket.exception.InvalidTicketRequestException
 import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketException
@@ -51,6 +54,9 @@ class TicketExceptionHandler {
 		is TicketTypeFixedException -> problem(HttpStatus.BAD_REQUEST, "ticket_type_fixed", ex.message!!)
 		is TicketProjectArchivedException -> problem(HttpStatus.CONFLICT, "project_archived", ex.message!!)
 		is WorkspaceNotNeededException -> problem(HttpStatus.CONFLICT, "workspace_not_needed", ex.message!!)
+		is WorkspaceMissingException -> problem(HttpStatus.CONFLICT, "workspace_missing", ex.message!!)
+		is NoFindingsException -> problem(HttpStatus.CONFLICT, "no_findings", ex.message!!)
+		is AlreadyApprovedException -> problem(HttpStatus.CONFLICT, "already_approved", ex.message!!)
 	}
 
 	/** Thrown by the checkout package; the workspace keeps these on the ticket, so they reach here only from other routes. */

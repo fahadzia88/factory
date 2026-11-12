@@ -18,6 +18,7 @@ import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
+import com.toptier.custom.ticket.service.TicketDetails
 import com.toptier.custom.ticket.service.TicketHistory
 import com.toptier.custom.ticket.service.TicketService
 import com.toptier.custom.ticket.service.TicketWorkspace
@@ -61,6 +62,9 @@ class TicketServiceTests {
 
 	@MockitoBean
 	lateinit var worktrees: TicketWorktrees
+
+	@MockitoBean
+	lateinit var details: TicketDetails
 
 	@BeforeEach
 	fun projects() {
