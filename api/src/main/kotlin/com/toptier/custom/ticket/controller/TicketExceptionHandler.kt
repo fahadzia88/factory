@@ -12,6 +12,9 @@ import com.toptier.custom.checkout.exception.PushDefaultBranchException
 import com.toptier.custom.checkout.exception.PushRejectedException
 import com.toptier.custom.checkout.exception.WorktreeMissingException
 import com.toptier.custom.checkout.exception.describe
+import com.toptier.custom.feature.exception.AgentUnavailableException
+import com.toptier.custom.feature.exception.BlankMessageException
+import com.toptier.custom.feature.exception.ChatBusyException
 import com.toptier.custom.feature.service.PullProblems
 import com.toptier.custom.github.exception.GitHubException
 import com.toptier.custom.project.exception.ProjectNotFoundException
@@ -72,6 +75,19 @@ class TicketExceptionHandler {
 		is NothingToCompareException -> problem(HttpStatus.CONFLICT, "nothing_to_compare", ex.message!!)
 		is TicketPullExistsException -> problem(HttpStatus.CONFLICT, "pull_exists", ex.message!!)
 		is PullLinkSetException -> problem(HttpStatus.CONFLICT, "pull_link_set", ex.message!!)
+	}
+
+	@ExceptionHandler(BlankMessageException::class)
+	fun handleBlankMessage(ex: BlankMessageException): ProblemDetail =
+		problem(HttpStatus.BAD_REQUEST, "blank_message", ex.message!!)
+
+	@ExceptionHandler(ChatBusyException::class)
+	fun handleChatBusy(ex: ChatBusyException): ProblemDetail = problem(HttpStatus.CONFLICT, "chat_busy", ex.message!!)
+
+	@ExceptionHandler(AgentUnavailableException::class)
+	fun handleAgentUnavailable(ex: AgentUnavailableException): ProblemDetail {
+		log.info("Ticket chat: {}", ex.message)
+		return problem(HttpStatus.BAD_GATEWAY, "agent_unavailable", ex.message!!)
 	}
 
 	/** A pull request call that GitHub didn't answer usefully. */
