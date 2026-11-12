@@ -19,6 +19,8 @@ export default [
     route("projects/:id/features", "routes/project-features.ts"),
     route("projects/:id/features/new", "routes/feature-new.tsx"),
     route("projects/:id/features/:featureId", "routes/feature-detail.tsx"),
+    route("projects/:id/tickets", "routes/ticket-list.tsx"),
+    route("projects/:id/tickets/new", "routes/ticket-new.tsx"),
     route("assistant", "routes/assistant.tsx"),
   ]),
 ] satisfies RouteConfig
