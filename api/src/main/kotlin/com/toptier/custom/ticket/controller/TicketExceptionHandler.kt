@@ -12,7 +12,13 @@ import com.toptier.custom.checkout.exception.PushDefaultBranchException
 import com.toptier.custom.checkout.exception.PushRejectedException
 import com.toptier.custom.checkout.exception.WorktreeMissingException
 import com.toptier.custom.checkout.exception.describe
+import com.toptier.custom.feature.service.PullProblems
+import com.toptier.custom.github.exception.GitHubException
 import com.toptier.custom.project.exception.ProjectNotFoundException
+import com.toptier.custom.ticket.exception.BranchNotPushedException
+import com.toptier.custom.ticket.exception.NothingToCompareException
+import com.toptier.custom.ticket.exception.PullLinkSetException
+import com.toptier.custom.ticket.exception.TicketPullExistsException
 import com.toptier.custom.ticket.exception.AlreadyApprovedException
 import com.toptier.custom.ticket.exception.InvalidTicketException
 import com.toptier.custom.ticket.exception.NoFindingsException
@@ -62,6 +68,18 @@ class TicketExceptionHandler {
 		is NoFindingsException -> problem(HttpStatus.CONFLICT, "no_findings", ex.message!!)
 		is AlreadyApprovedException -> problem(HttpStatus.CONFLICT, "already_approved", ex.message!!)
 		is NothingCommittedException -> problem(HttpStatus.CONFLICT, "nothing_committed", ex.message!!)
+		is BranchNotPushedException -> problem(HttpStatus.CONFLICT, "branch_not_pushed", ex.message!!)
+		is NothingToCompareException -> problem(HttpStatus.CONFLICT, "nothing_to_compare", ex.message!!)
+		is TicketPullExistsException -> problem(HttpStatus.CONFLICT, "pull_exists", ex.message!!)
+		is PullLinkSetException -> problem(HttpStatus.CONFLICT, "pull_link_set", ex.message!!)
+	}
+
+	/** A pull request call that GitHub didn't answer usefully. */
+	@ExceptionHandler(GitHubException::class)
+	fun handleGitHub(ex: GitHubException): ProblemDetail {
+		log.info("Ticket pull request call failed: {}", ex.message)
+		val described = PullProblems.describe(ex)
+		return problem(described.status, described.code, described.detail)
 	}
 
 	/** Thrown by the checkout package; the workspace keeps these on the ticket, so they reach here only from other routes. */

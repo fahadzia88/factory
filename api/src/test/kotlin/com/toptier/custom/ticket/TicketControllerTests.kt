@@ -19,7 +19,13 @@ import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
 import com.toptier.custom.checkout.exception.PushRejectedException
 import com.toptier.custom.checkout.service.PushResult
+import com.toptier.custom.github.exception.GitHubRefusedException
+import com.toptier.custom.github.exception.GitHubTimeoutException
 import com.toptier.custom.ticket.exception.AlreadyApprovedException
+import com.toptier.custom.ticket.exception.BranchNotPushedException
+import com.toptier.custom.ticket.exception.NothingToCompareException
+import com.toptier.custom.ticket.exception.PullLinkSetException
+import com.toptier.custom.ticket.exception.TicketPullExistsException
 import com.toptier.custom.ticket.exception.NothingCommittedException
 import com.toptier.custom.ticket.service.CommitResult
 import com.toptier.custom.ticket.exception.NoFindingsException
@@ -358,6 +364,43 @@ class TicketControllerTests {
 		mockMvc.post("$BASE/21/commit") { auth(); json("""{"message":"long"}""") }.andExpect { problem(400, "invalid_request") }
 		mockMvc.post("/api/projects/14/tickets/21/commit") { auth(); json("""{"message":"Fix"}""") }
 			.andExpect { problem(409, "project_archived") }
+	}
+
+	@Test
+	fun `a pull request answers 201 with the ticket and its link`() {
+		val opened = ticket().apply {
+			pullNumber = 7
+			pullRequestUrl = "https://github.com/o/r/pull/7"
+		}
+		given(tickets.openPull(12, 21, "Fix", false)).willReturn(opened)
+		given(tickets.openPull(12, 22, null, true)).willReturn(opened)
+
+		mockMvc.post("$BASE/21/pull") { json("""{"title":"Fix"}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/pull") { auth(); json("""{"title":"Fix"}""") }.andExpect {
+			status { isCreated() }
+			jsonPath("$.pullNumber") { value(7) }
+			jsonPath("$.pullRequestUrl") { value("https://github.com/o/r/pull/7") }
+		}
+		mockMvc.post("$BASE/22/pull") { auth(); json("""{"replaceLink":true}""") }.andExpect { status { isCreated() } }
+	}
+
+	@Test
+	fun `pull request refusals map to 409, and GitHub failures to 502 and 504`() {
+		given(tickets.openPull(12, 31, null, false)).willThrow(TicketPullExistsException())
+		given(tickets.openPull(12, 32, null, false)).willThrow(PullLinkSetException())
+		given(tickets.openPull(12, 33, null, false)).willThrow(BranchNotPushedException("bugs/3-x"))
+		given(tickets.openPull(12, 34, null, false)).willThrow(NothingToCompareException())
+		given(tickets.openPull(12, 35, null, false)).willThrow(WorkspaceMissingException())
+		given(tickets.openPull(12, 36, null, false)).willThrow(GitHubRefusedException(403, "x"))
+		given(tickets.openPull(12, 37, null, false)).willThrow(GitHubTimeoutException("x", java.net.SocketTimeoutException()))
+		given(tickets.openPull(14, 31, null, false)).willThrow(TicketProjectArchivedException())
+
+		for ((id, code) in listOf(31 to "pull_exists", 32 to "pull_link_set", 33 to "branch_not_pushed", 34 to "nothing_to_compare", 35 to "workspace_missing")) {
+			mockMvc.post("$BASE/$id/pull") { auth() }.andExpect { problem(409, code) }
+		}
+		mockMvc.post("$BASE/36/pull") { auth() }.andExpect { problem(502, "github_error") }
+		mockMvc.post("$BASE/37/pull") { auth() }.andExpect { problem(504, "github_timeout") }
+		mockMvc.post("/api/projects/14/tickets/31/pull") { auth() }.andExpect { problem(409, "project_archived") }
 	}
 
 	@Test

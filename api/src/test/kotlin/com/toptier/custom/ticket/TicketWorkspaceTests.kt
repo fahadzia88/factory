@@ -31,6 +31,7 @@ import com.toptier.custom.ticket.service.TicketDetails
 import com.toptier.custom.ticket.service.TicketDetailsTemplate
 import com.toptier.custom.ticket.service.TicketGit
 import com.toptier.custom.ticket.service.TicketHistory
+import com.toptier.custom.ticket.service.TicketPulls
 import com.toptier.custom.ticket.service.TicketService
 import com.toptier.custom.ticket.service.TicketWorkspace
 import com.toptier.custom.ticket.service.TicketWorktrees
@@ -89,6 +90,9 @@ class TicketWorkspaceTests {
 
 	@MockitoBean
 	lateinit var checker: GitHubRepositoryChecker
+
+	@MockitoBean
+	lateinit var pullRequests: TicketPulls
 
 	@TempDir
 	lateinit var tmp: Path

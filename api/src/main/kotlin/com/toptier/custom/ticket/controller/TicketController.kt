@@ -5,6 +5,7 @@ import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.dto.CommitTicketRequest
 import com.toptier.custom.ticket.dto.CommitTicketResponse
 import com.toptier.custom.ticket.dto.CreateTicketRequest
+import com.toptier.custom.ticket.dto.OpenTicketPullRequest
 import com.toptier.custom.ticket.dto.PushTicketResponse
 import com.toptier.custom.ticket.dto.SetTicketStatusRequest
 import com.toptier.custom.ticket.dto.StatusInfoResponse
@@ -98,6 +99,15 @@ class TicketController(
 		@PathVariable ticketId: Long,
 		@RequestBody(required = false) request: CommitTicketRequest?,
 	): CommitTicketResponse = tickets.commit(id, ticketId, request?.message).let { CommitTicketResponse(it.committed, it.sha) }
+
+	/** Opens a GitHub pull request for the pushed branch and saves its link on the ticket. */
+	@PostMapping("/{ticketId}/pull")
+	fun openPull(
+		@PathVariable id: Long,
+		@PathVariable ticketId: Long,
+		@RequestBody(required = false) request: OpenTicketPullRequest?,
+	): ResponseEntity<TicketResponse> = ResponseEntity.status(HttpStatus.CREATED)
+		.body(respond(tickets.openPull(id, ticketId, request?.title, request?.replaceLink == true)))
 
 	/** Pushes the ticket's branch to GitHub. */
 	@PostMapping("/{ticketId}/push")

@@ -37,6 +37,9 @@ data class CommitTicketRequest(val message: String? = null)
 /** What a commit did: [sha] is null, and [committed] false, when there was nothing to commit. */
 data class CommitTicketResponse(val committed: Boolean, val sha: String?)
 
+/** Body of `POST …/tickets/{ticketId}/pull`; a blank [title] means `#<number> <title>`. */
+data class OpenTicketPullRequest(val title: String? = null, val replaceLink: Boolean? = null)
+
 /** The pushed [branch] and the short SHA of its [head]. */
 data class PushTicketResponse(val branch: String, val head: String)
 
