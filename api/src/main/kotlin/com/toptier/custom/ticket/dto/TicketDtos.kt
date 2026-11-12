@@ -2,7 +2,24 @@ package com.toptier.custom.ticket.dto
 
 import com.toptier.custom.ticket.domain.Ticket
 import com.toptier.custom.ticket.domain.TicketEvent
+import com.toptier.custom.ticket.domain.TicketStatus
+import com.toptier.custom.ticket.domain.TicketType
+import com.toptier.custom.ticket.service.TicketStatusRules
 import java.time.Instant
+
+/** Body of `POST …/tickets/{ticketId}/status`; [status] is a JSON status value like `in_progress`. */
+data class SetTicketStatusRequest(val status: String? = null)
+
+/** A status with its description and the ticket types that can have it. */
+data class StatusInfoResponse(val status: String, val description: String, val types: List<String>) {
+	companion object {
+		fun from(status: TicketStatus) = StatusInfoResponse(
+			status = status.value,
+			description = status.description,
+			types = TicketType.entries.filter { status.usableBy(it) }.map { it.value },
+		)
+	}
+}
 
 /** Body of `POST /api/projects/{id}/tickets`; [type] is `bug` or `improvement`, [priority] defaults to `medium`. */
 data class CreateTicketRequest(
@@ -46,8 +63,11 @@ data class TicketResponse(
 	val updatedAt: Instant,
 ) {
 	companion object {
-		/** The ticket with the resting values of the fields later tasks fill in. */
-		fun from(ticket: Ticket) = TicketResponse(
+		/**
+		 * The ticket with the resting values of the fields later tasks fill in. An [archived] project's ticket
+		 * has no allowed statuses.
+		 */
+		fun from(ticket: Ticket, archived: Boolean = false) = TicketResponse(
 			id = ticket.id!!,
 			projectId = ticket.projectId,
 			number = ticket.number,
@@ -57,7 +77,7 @@ data class TicketResponse(
 			priority = ticket.priority.value,
 			status = ticket.status.value,
 			statusDescription = ticket.status.description,
-			allowedStatuses = emptyList(),
+			allowedStatuses = if (archived) emptyList() else TicketStatusRules.allowed(ticket.type, ticket.status).map { it.value },
 			pullRequestUrl = ticket.pullRequestUrl,
 			pullNumber = ticket.pullNumber,
 			workspace = TicketWorkspaceResponse(

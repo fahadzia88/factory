@@ -10,6 +10,7 @@ import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.domain.TicketType
 import com.toptier.custom.ticket.dto.CreateTicketRequest
 import com.toptier.custom.ticket.exception.InvalidTicketException
+import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.InvalidTicketRequestException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
@@ -122,6 +123,42 @@ class TicketService(
 		ticket.updatedAt = clock.instant()
 		return tickets.save(ticket)
 	}
+
+	/**
+	 * Moves the ticket to [rawStatus] (a JSON value like `in_review`) when [TicketStatusRules] allow it from its
+	 * current status, writing one `status` entry. A refused move changes and writes nothing.
+	 */
+	@Transactional
+	fun changeStatus(projectId: Long, ticketId: Long, rawStatus: String?): Ticket {
+		val ticket = get(projectId, ticketId)
+		requireActive(projectId)
+		val target = TicketStatus.fromValue(rawStatus)
+			?: throw InvalidTicketException("\"${rawStatus.orEmpty()}\" isn't a ticket status.")
+		val allowed = TicketStatusRules.allowed(ticket.type, ticket.status)
+		if (target !in allowed) throw InvalidTransitionException(ticket.status, target, allowed)
+
+		val old = ticket.status
+		ticket.status = target
+		ticket.updatedAt = clock.instant()
+		tickets.save(ticket)
+		history.record(ticket.id!!, TicketEvent.KIND_STATUS, "status", old.value, target.value)
+		onStatusChanged(ticket, old)
+		return ticket
+	}
+
+	/** Every status with its description, for the status route; checks that the project exists. */
+	@Transactional(readOnly = true)
+	fun statuses(projectId: Long): List<TicketStatus> {
+		projects.get(projectId)
+		return TicketStatus.entries
+	}
+
+	/** True when the project is archived, so its tickets have no allowed statuses. */
+	@Transactional(readOnly = true)
+	fun archived(projectId: Long): Boolean = projects.get(projectId).archived
+
+	/** Called after a status change was saved and recorded; the workspace is started from here by a later task. */
+	private fun onStatusChanged(ticket: Ticket, old: TicketStatus) = Unit
 
 	/** The ticket's history, oldest first. */
 	@Transactional(readOnly = true)

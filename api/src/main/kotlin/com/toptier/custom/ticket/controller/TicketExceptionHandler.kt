@@ -3,6 +3,7 @@ package com.toptier.custom.ticket.controller
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.ticket.exception.InvalidTicketException
 import com.toptier.custom.ticket.exception.InvalidTicketRequestException
+import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
@@ -29,6 +30,11 @@ class TicketExceptionHandler {
 		is TicketNotFoundException -> problem(HttpStatus.NOT_FOUND, "ticket_not_found", ex.message!!)
 		is InvalidTicketException -> problem(HttpStatus.BAD_REQUEST, "invalid_ticket", ex.message!!)
 		is InvalidTicketRequestException -> problem(HttpStatus.BAD_REQUEST, "invalid_request", ex.message!!)
+		is InvalidTransitionException -> problem(HttpStatus.CONFLICT, "invalid_transition", ex.message!!).apply {
+			setProperty("from", ex.from.value)
+			setProperty("to", ex.to.value)
+			setProperty("allowed", ex.allowed.map { it.value })
+		}
 		is TicketTypeFixedException -> problem(HttpStatus.BAD_REQUEST, "ticket_type_fixed", ex.message!!)
 		is TicketProjectArchivedException -> problem(HttpStatus.CONFLICT, "project_archived", ex.message!!)
 	}

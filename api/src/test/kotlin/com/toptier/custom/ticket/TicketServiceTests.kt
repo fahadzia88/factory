@@ -14,6 +14,7 @@ import com.toptier.custom.ticket.domain.TicketType
 import com.toptier.custom.ticket.dto.CreateTicketRequest
 import com.toptier.custom.ticket.exception.InvalidTicketException
 import com.toptier.custom.ticket.exception.InvalidTicketRequestException
+import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
@@ -30,6 +31,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import java.time.Duration
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -221,6 +223,134 @@ class TicketServiceTests {
 		assertThrows<ProjectNotFoundException> { service.list(9, null, null) }
 		assertThrows<ProjectNotFoundException> { service.create(9, CreateTicketRequest(type = "bug", title = "x")) }
 	}
+
+	@Test
+	fun `a ticket moves through the whole flow, one entry per step`() {
+		val ticket = service.create(1, CreateTicketRequest(type = "bug", title = "T"))
+		val flow = listOf("open", "in_progress", "in_review", "merged", "deployed", "closed")
+
+		for (next in flow) {
+			clock.advance(Duration.ofMinutes(1))
+			val moved = service.changeStatus(1, ticket.id!!, next)
+			assertEquals(next, moved.status.value)
+			assertEquals(clock.now, moved.updatedAt)
+		}
+
+		val entries = service.history(1, ticket.id!!).filter { it.kind == TicketEvent.KIND_STATUS }
+		assertEquals(flow, entries.map { it.newValue })
+		assertEquals(listOf("filed") + flow.dropLast(1), entries.map { it.oldValue })
+		assertTrue(entries.all { it.field == "status" })
+	}
+
+	@Test
+	fun `a refused move changes nothing and writes no entry`() {
+		val ticket = service.create(1, CreateTicketRequest(type = "bug", title = "T"))
+
+		val skip = assertThrows<InvalidTransitionException> { service.changeStatus(1, ticket.id!!, "merged") }
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, ticket.id!!, "in_progress") }
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, ticket.id!!, "reopened") }
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, ticket.id!!, "filed") }
+		assertThrows<InvalidTicketException> { service.changeStatus(1, ticket.id!!, "done") }
+		assertThrows<InvalidTicketException> { service.changeStatus(1, ticket.id!!, null) }
+
+		assertEquals(TicketStatus.FILED, skip.from)
+		assertEquals(TicketStatus.MERGED, skip.to)
+		assertEquals(listOf(TicketStatus.OPEN, TicketStatus.INCORRECT_EXPECTATION, TicketStatus.OUT_OF_SCOPE, TicketStatus.BACKLOG, TicketStatus.CLOSED), skip.allowed)
+		assertEquals(TicketStatus.FILED, tickets.findById(ticket.id!!).get().status)
+		assertEquals(listOf("created"), service.history(1, ticket.id!!).map { it.kind })
+	}
+
+	@Test
+	fun `a bug can be reopened from deployed and closed, then goes back to in progress`() {
+		val bug = ticketIn(TicketType.BUG, TicketStatus.DEPLOYED)
+		assertEquals(TicketStatus.REOPENED, service.changeStatus(1, bug.id!!, "reopened").status)
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, bug.id!!, "open") }
+		assertEquals(TicketStatus.IN_PROGRESS, service.changeStatus(1, bug.id!!, "in_progress").status)
+
+		val closed = ticketIn(TicketType.BUG, TicketStatus.CLOSED)
+		assertEquals(TicketStatus.REOPENED, service.changeStatus(1, closed.id!!, "reopened").status)
+		assertEquals(TicketStatus.CLOSED, service.changeStatus(1, closed.id!!, "closed").status)
+	}
+
+	@Test
+	fun `a bug can't be reopened before it is merged`() {
+		for (status in listOf(TicketStatus.FILED, TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.IN_REVIEW, TicketStatus.MERGED)) {
+			val bug = ticketIn(TicketType.BUG, status)
+
+			assertThrows<InvalidTransitionException> { service.changeStatus(1, bug.id!!, "reopened") }
+			assertEquals(status, tickets.findById(bug.id!!).get().status)
+		}
+	}
+
+	@Test
+	fun `an improvement can't be reopened or called an incorrect expectation, and closed is final`() {
+		val deployed = ticketIn(TicketType.IMPROVEMENT, TicketStatus.DEPLOYED)
+		val filed = ticketIn(TicketType.IMPROVEMENT, TicketStatus.FILED)
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, deployed.id!!, "reopened") }
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, filed.id!!, "incorrect_expectation") }
+
+		assertEquals(TicketStatus.CLOSED, service.changeStatus(1, deployed.id!!, "closed").status)
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, deployed.id!!, "reopened") }
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, deployed.id!!, "in_progress") }
+	}
+
+	@Test
+	fun `filed tickets can be parked, dropped or declined, and a parked one reopened for work`() {
+		val parked = ticketIn(TicketType.BUG, TicketStatus.FILED)
+		assertEquals(TicketStatus.BACKLOG, service.changeStatus(1, parked.id!!, "backlog").status)
+		assertEquals(TicketStatus.OPEN, service.changeStatus(1, parked.id!!, "open").status)
+
+		val scope = ticketIn(TicketType.IMPROVEMENT, TicketStatus.FILED)
+		assertEquals(TicketStatus.OUT_OF_SCOPE, service.changeStatus(1, scope.id!!, "out_of_scope").status)
+		assertThrows<InvalidTransitionException> { service.changeStatus(1, scope.id!!, "open") }
+
+		val declined = ticketIn(TicketType.BUG, TicketStatus.FILED)
+		assertEquals(TicketStatus.INCORRECT_EXPECTATION, service.changeStatus(1, declined.id!!, "incorrect_expectation").status)
+		assertEquals(TicketStatus.CLOSED, service.changeStatus(1, declined.id!!, "closed").status)
+	}
+
+	@Test
+	fun `an archived project refuses a status change but its tickets can be read`() {
+		val ticket = tickets.saveAndFlush(Ticket().apply {
+			projectId = 3
+			number = 1
+			title = "Old"
+			createdAt = clock.now
+			updatedAt = clock.now
+		})
+
+		assertThrows<TicketProjectArchivedException> { service.changeStatus(3, ticket.id!!, "open") }
+
+		assertEquals(TicketStatus.FILED, service.get(3, ticket.id!!).status)
+		assertTrue(service.archived(3))
+		assertFalse(service.archived(1))
+		assertEquals(0, events.count())
+	}
+
+	@Test
+	fun `status changes of unknown and other projects' tickets are not found`() {
+		val ticket = service.create(1, CreateTicketRequest(type = "bug", title = "Mine"))
+
+		assertThrows<TicketNotFoundException> { service.changeStatus(2, ticket.id!!, "open") }
+		assertThrows<TicketNotFoundException> { service.changeStatus(1, ticket.id!! + 100, "open") }
+		assertThrows<ProjectNotFoundException> { service.changeStatus(9, ticket.id!!, "open") }
+	}
+
+	@Test
+	fun `statuses lists all eleven`() {
+		assertEquals(11, service.statuses(1).size)
+		assertThrows<ProjectNotFoundException> { service.statuses(9) }
+	}
+
+	private fun ticketIn(type: TicketType, status: TicketStatus): Ticket = tickets.saveAndFlush(Ticket().apply {
+		projectId = 1
+		number = (tickets.maxNumber(1) ?: 0) + 1
+		this.type = type
+		this.status = status
+		title = "T"
+		createdAt = clock.now
+		updatedAt = clock.now
+	})
 
 	private fun project(id: Long, archived: Boolean) = Project().apply {
 		this.id = id
