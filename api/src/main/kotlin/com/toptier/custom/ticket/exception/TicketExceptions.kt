@@ -1,5 +1,7 @@
 package com.toptier.custom.ticket.exception
 
+import com.toptier.custom.ticket.domain.TicketStatus
+
 /** A ticket request that can't be carried out; the message is the response's `detail`. */
 sealed class TicketException(message: String) : RuntimeException(message)
 
@@ -14,6 +16,13 @@ class InvalidTicketRequestException(message: String) : TicketException(message)
 
 /** The request tried to change the ticket's type, which is fixed when the ticket is created. */
 class TicketTypeFixedException : TicketException("A ticket's type can't be changed after it is created.")
+
+/** The ticket can't move from [from] to [to]; [allowed] are the statuses it can move to. */
+class InvalidTransitionException(val from: TicketStatus, val to: TicketStatus, val allowed: List<TicketStatus>) :
+	TicketException(
+		"A ticket that is ${from.value} can't move to ${to.value}. " +
+			if (allowed.isEmpty()) "It has no further status." else "It can move to: ${allowed.joinToString(", ") { it.value }}.",
+	)
 
 /** The project is archived, so its tickets can be read but not changed. */
 class TicketProjectArchivedException : TicketException("This project is archived. Restore it to change its tickets.")

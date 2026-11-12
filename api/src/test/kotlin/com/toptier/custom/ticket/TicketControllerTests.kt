@@ -13,6 +13,7 @@ import com.toptier.custom.ticket.domain.TicketType
 import com.toptier.custom.ticket.dto.CreateTicketRequest
 import com.toptier.custom.ticket.exception.InvalidTicketException
 import com.toptier.custom.ticket.exception.InvalidTicketRequestException
+import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
@@ -71,7 +72,8 @@ class TicketControllerTests {
 			jsonPath("$[0].priority") { value("high") }
 			jsonPath("$[0].status") { value("in_progress") }
 			jsonPath("$[0].statusDescription") { value("Someone is working on it.") }
-			jsonPath("$[0].allowedStatuses") { isEmpty() }
+			jsonPath("$[0].allowedStatuses[0]") { value("in_review") }
+			jsonPath("$[0].allowedStatuses[1]") { value("closed") }
 			jsonPath("$[0].workspace.state") { value("none") }
 			jsonPath("$[0].workspace.branch") { value(null as Any?) }
 			jsonPath("$[0].workspace.worktree") { value(null as Any?) }
@@ -180,6 +182,65 @@ class TicketControllerTests {
 			jsonPath("$[1].newValue") { value("Login fails on Safari") }
 			jsonPath("$[1].createdAt") { value("2026-11-06T10:01:00Z") }
 		}
+	}
+
+	@Test
+	fun `an archived project's tickets have no allowed statuses`() {
+		given(tickets.list(12, null, null)).willReturn(listOf(ticket()))
+		given(tickets.archived(12)).willReturn(true)
+
+		mockMvc.get(BASE) { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$[0].allowedStatuses") { isEmpty() }
+		}
+	}
+
+	@Test
+	fun `statuses answers every status with its description and types`() {
+		given(tickets.statuses(12)).willReturn(TicketStatus.entries)
+		given(tickets.statuses(13)).willThrow(ProjectNotFoundException(13))
+
+		mockMvc.get("$BASE/statuses").andExpect { status { isUnauthorized() } }
+		mockMvc.get("$BASE/statuses") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.length()") { value(11) }
+			jsonPath("$[0].status") { value("filed") }
+			jsonPath("$[0].description") { value("Reported, not yet looked at.") }
+			jsonPath("$[0].types[0]") { value("bug") }
+			jsonPath("$[0].types[1]") { value("improvement") }
+			jsonPath("$[7].status") { value("reopened") }
+			jsonPath("$[7].types.length()") { value(1) }
+			jsonPath("$[7].types[0]") { value("bug") }
+		}
+		mockMvc.get("/api/projects/13/tickets/statuses") { auth() }.andExpect { problem(404, "project_not_found") }
+	}
+
+	@Test
+	fun `a status change answers the ticket, and a refused one the transition`() {
+		given(tickets.changeStatus(12, 21, "in_review")).willReturn(ticket().apply { status = TicketStatus.IN_REVIEW })
+		given(tickets.changeStatus(12, 21, "merged")).willThrow(
+			InvalidTransitionException(TicketStatus.IN_PROGRESS, TicketStatus.MERGED, listOf(TicketStatus.IN_REVIEW, TicketStatus.CLOSED)),
+		)
+		given(tickets.changeStatus(12, 21, "done")).willThrow(InvalidTicketException("\"done\" isn't a ticket status."))
+		given(tickets.changeStatus(12, 22, "open")).willThrow(TicketNotFoundException())
+		given(tickets.changeStatus(14, 21, "open")).willThrow(TicketProjectArchivedException())
+
+		mockMvc.post("$BASE/21/status") { json("""{"status":"in_review"}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/status") { auth(); json("""{"status":"in_review"}""") }.andExpect {
+			status { isOk() }
+			jsonPath("$.status") { value("in_review") }
+			jsonPath("$.allowedStatuses[0]") { value("merged") }
+		}
+		mockMvc.post("$BASE/21/status") { auth(); json("""{"status":"merged"}""") }.andExpect {
+			problem(409, "invalid_transition")
+			jsonPath("$.from") { value("in_progress") }
+			jsonPath("$.to") { value("merged") }
+			jsonPath("$.allowed[0]") { value("in_review") }
+			jsonPath("$.allowed[1]") { value("closed") }
+		}
+		mockMvc.post("$BASE/21/status") { auth(); json("""{"status":"done"}""") }.andExpect { problem(400, "invalid_ticket") }
+		mockMvc.post("$BASE/22/status") { auth(); json("""{"status":"open"}""") }.andExpect { problem(404, "ticket_not_found") }
+		mockMvc.post("/api/projects/14/tickets/21/status") { auth(); json("""{"status":"open"}""") }.andExpect { problem(409, "project_archived") }
 	}
 
 	@Test
