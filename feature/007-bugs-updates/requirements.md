@@ -1,7 +1,7 @@
 ---
 feature: 007-bugs-updates
-status: draft
-approved:
+status: approved
+approved: 2026-11-11
 ---
 
 # bugs-updates
@@ -138,3 +138,4 @@ People who work on a project and want to file a bug or an improvement, move it t
 - 2026-11-11 — Drafted from the request and answers (per project; guided flow; priority and pull request link).
 - 2026-11-11 — Revised: more statuses with descriptions and a new flow (`reopened` and `incorrect expectation` bug-only), detail page, ticket workspace with worktree, `details.md`, investigator agent, Approve/Commit/Push.
 - 2026-11-11 — Added a Create pull request button (AC-31 to AC-34); later ACs renumbered.
+- 2026-11-11 — Approved.
