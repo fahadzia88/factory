@@ -1,6 +1,9 @@
 package com.toptier.custom.ticket.controller
 
+import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.dto.CreateTicketRequest
+import com.toptier.custom.ticket.dto.SetTicketStatusRequest
+import com.toptier.custom.ticket.dto.StatusInfoResponse
 import com.toptier.custom.ticket.dto.TicketEventResponse
 import com.toptier.custom.ticket.dto.TicketResponse
 import com.toptier.custom.ticket.service.TicketService
@@ -28,17 +31,26 @@ class TicketController(
 		@PathVariable id: Long,
 		@RequestParam(required = false) type: String?,
 		@RequestParam(required = false) status: String?,
-	): List<TicketResponse> = tickets.list(id, type, status).map(TicketResponse::from)
+	): List<TicketResponse> {
+		val found = tickets.list(id, type, status)
+		val archived = tickets.archived(id)
+		return found.map { TicketResponse.from(it, archived) }
+	}
 
 	/** Files a ticket. */
 	@PostMapping
 	fun create(@PathVariable id: Long, @RequestBody request: CreateTicketRequest): ResponseEntity<TicketResponse> =
 		ResponseEntity.status(HttpStatus.CREATED).body(TicketResponse.from(tickets.create(id, request)))
 
+	/** Every status with its description and the ticket types that can have it. */
+	@GetMapping("/statuses")
+	fun statuses(@PathVariable id: Long): List<StatusInfoResponse> =
+		tickets.statuses(id).map(StatusInfoResponse::from)
+
 	/** One ticket. */
 	@GetMapping("/{ticketId}")
 	fun get(@PathVariable id: Long, @PathVariable ticketId: Long): TicketResponse =
-		TicketResponse.from(tickets.get(id, ticketId))
+		TicketResponse.from(tickets.get(id, ticketId), tickets.archived(id))
 
 	/**
 	 * Changes the fields present in the body. The body is read as a map so a missing field and a `null` one
@@ -50,6 +62,14 @@ class TicketController(
 		@PathVariable ticketId: Long,
 		@RequestBody changes: Map<String, Any?>,
 	): TicketResponse = TicketResponse.from(tickets.edit(id, ticketId, changes))
+
+	/** Moves the ticket to another status, if the flow allows it. */
+	@PostMapping("/{ticketId}/status")
+	fun setStatus(
+		@PathVariable id: Long,
+		@PathVariable ticketId: Long,
+		@RequestBody request: SetTicketStatusRequest,
+	): TicketResponse = TicketResponse.from(tickets.changeStatus(id, ticketId, request.status))
 
 	/** The ticket's history, oldest first. */
 	@GetMapping("/{ticketId}/history")
