@@ -4,6 +4,7 @@ import com.toptier.custom.ticket.domain.Ticket
 import com.toptier.custom.ticket.domain.TicketEvent
 import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.domain.TicketType
+import com.toptier.custom.ticket.service.TicketDetailsView
 import com.toptier.custom.ticket.service.TicketStatusRules
 import com.toptier.custom.ticket.service.TicketWorktree
 import java.time.Instant
@@ -42,6 +43,13 @@ data class TicketWorkspaceResponse(
 	val worktree: TicketWorktreeResponse?,
 )
 
+/** A ticket's `details.md`: its [path] in the repository, its [content], and whether it has findings. */
+data class TicketDetailsResponse(val path: String, val content: String, val hasFindings: Boolean) {
+	companion object {
+		fun from(details: TicketDetailsView) = TicketDetailsResponse(details.path, details.content, details.hasFindings)
+	}
+}
+
 /** A ticket with its status description, workspace and investigation mode. */
 data class TicketResponse(
 	val id: Long,
@@ -68,7 +76,12 @@ data class TicketResponse(
 		 * The ticket with the resting values of the fields later tasks fill in. An [archived] project's ticket
 		 * has no allowed statuses.
 		 */
-		fun from(ticket: Ticket, archived: Boolean = false, worktree: TicketWorktree? = null) = TicketResponse(
+		fun from(
+			ticket: Ticket,
+			archived: Boolean = false,
+			worktree: TicketWorktree? = null,
+			hasFindings: Boolean = false,
+		) = TicketResponse(
 			id = ticket.id!!,
 			projectId = ticket.projectId,
 			number = ticket.number,
@@ -90,7 +103,7 @@ data class TicketResponse(
 			),
 			mode = ticket.mode,
 			approvedAt = ticket.approvedAt,
-			hasFindings = false,
+			hasFindings = hasFindings,
 			createdAt = ticket.createdAt,
 			updatedAt = ticket.updatedAt,
 		)

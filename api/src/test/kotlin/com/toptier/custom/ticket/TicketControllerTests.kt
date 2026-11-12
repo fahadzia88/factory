@@ -17,7 +17,11 @@ import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
+import com.toptier.custom.ticket.exception.AlreadyApprovedException
+import com.toptier.custom.ticket.exception.NoFindingsException
+import com.toptier.custom.ticket.exception.WorkspaceMissingException
 import com.toptier.custom.ticket.exception.WorkspaceNotNeededException
+import com.toptier.custom.ticket.service.TicketDetailsView
 import com.toptier.custom.ticket.service.TicketService
 import com.toptier.custom.ticket.service.TicketWorktree
 import org.junit.jupiter.api.Test
@@ -284,6 +288,47 @@ class TicketControllerTests {
 		}
 		mockMvc.post("$BASE/22/workspace") { auth() }.andExpect { problem(409, "workspace_not_needed") }
 		mockMvc.post("/api/projects/14/tickets/21/workspace") { auth() }.andExpect { problem(409, "project_archived") }
+	}
+
+	@Test
+	fun `details answers the file and whether it has findings`() {
+		given(tickets.details(12, 21)).willReturn(TicketDetailsView("feature/bugs/3-login-fails/details.md", "# #3 Login fails\n", true))
+		given(tickets.details(12, 22)).willThrow(WorkspaceMissingException())
+
+		mockMvc.get("$BASE/21/details").andExpect { status { isUnauthorized() } }
+		mockMvc.get("$BASE/21/details") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.path") { value("feature/bugs/3-login-fails/details.md") }
+			jsonPath("$.content") { value("# #3 Login fails\n") }
+			jsonPath("$.hasFindings") { value(true) }
+		}
+		mockMvc.get("$BASE/22/details") { auth() }.andExpect { problem(409, "workspace_missing") }
+	}
+
+	@Test
+	fun `approve answers the ticket in implementer mode, or why not`() {
+		val approved = ticket().apply {
+			mode = "implementer"
+			approvedAt = AT
+		}
+		given(tickets.approve(12, 21)).willReturn(approved)
+		given(tickets.hasFindings(approved)).willReturn(true)
+		given(tickets.approve(12, 22)).willThrow(NoFindingsException())
+		given(tickets.approve(12, 23)).willThrow(AlreadyApprovedException())
+		given(tickets.approve(12, 24)).willThrow(WorkspaceMissingException())
+		given(tickets.approve(14, 21)).willThrow(TicketProjectArchivedException())
+
+		mockMvc.post("$BASE/21/approve").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/approve") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.mode") { value("implementer") }
+			jsonPath("$.approvedAt") { value("2026-11-06T10:00:00Z") }
+			jsonPath("$.hasFindings") { value(true) }
+		}
+		mockMvc.post("$BASE/22/approve") { auth() }.andExpect { problem(409, "no_findings") }
+		mockMvc.post("$BASE/23/approve") { auth() }.andExpect { problem(409, "already_approved") }
+		mockMvc.post("$BASE/24/approve") { auth() }.andExpect { problem(409, "workspace_missing") }
+		mockMvc.post("/api/projects/14/tickets/21/approve") { auth() }.andExpect { problem(409, "project_archived") }
 	}
 
 	@Test

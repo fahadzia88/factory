@@ -27,5 +27,16 @@ class InvalidTransitionException(val from: TicketStatus, val to: TicketStatus, v
 /** The ticket's workspace didn't fail, so there is nothing to retry. */
 class WorkspaceNotNeededException : TicketException("This ticket's workspace didn't fail, so there is nothing to retry.")
 
+/** The ticket has no usable workspace: it never became `in_progress`, or its worktree or `details.md` is missing. */
+class WorkspaceMissingException(
+	message: String = "This ticket has no workspace yet. It gets one when it first moves to in progress.",
+) : TicketException(message)
+
+/** The agent hasn't written findings into `details.md` yet, so there is nothing to approve. */
+class NoFindingsException : TicketException("details.md has no findings yet. Ask the agent to investigate first.")
+
+/** The investigation was approved already. */
+class AlreadyApprovedException : TicketException("The investigation was approved already.")
+
 /** The project is archived, so its tickets can be read but not changed. */
 class TicketProjectArchivedException : TicketException("This project is archived. Restore it to change its tickets.")
