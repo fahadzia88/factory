@@ -1,6 +1,7 @@
 package com.toptier.custom.ticket.controller
 
 import com.toptier.custom.ticket.domain.Ticket
+import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.dto.CommitTicketRequest
 import com.toptier.custom.ticket.dto.CommitTicketResponse
 import com.toptier.custom.ticket.dto.CreateTicketRequest
