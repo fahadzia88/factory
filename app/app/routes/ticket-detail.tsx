@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link, useRevalidator } from "react-router"
 
 import { PageHeader } from "~/components/page-header"
@@ -10,6 +11,7 @@ import {
 import { TicketDetailsCard } from "~/components/tickets/ticket-details-card"
 import { TicketHistory } from "~/components/tickets/ticket-history"
 import { TicketNotFound } from "~/components/tickets/ticket-not-found"
+import { TicketWorkspace } from "~/components/tickets/ticket-workspace"
 import { TicketStatusControl } from "~/components/tickets/ticket-status-control"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
@@ -113,6 +115,8 @@ export function HydrateFallback() {
 
 export default function TicketDetail({ loaderData }: Route.ComponentProps) {
   const revalidator = useRevalidator()
+  // Bumped after every change, so the Markdown is read again
+  const [turns, setTurns] = useState(0)
   const { projectId, project, ticket, history, statuses, notFound, error } =
     loaderData
 
@@ -140,7 +144,10 @@ export default function TicketDetail({ loaderData }: Route.ComponentProps) {
   }
 
   const archived = project?.archived ?? false
-  const onChanged = () => revalidator.revalidate()
+  const onChanged = () => {
+    revalidator.revalidate()
+    setTurns((n) => n + 1)
+  }
   const crumbProject = project ?? { id: ticket.projectId, name: "Project" }
 
   return (
@@ -178,6 +185,14 @@ export default function TicketDetail({ loaderData }: Route.ComponentProps) {
           </AlertTitle>
         </Alert>
       )}
+
+      <TicketWorkspace
+        ticket={ticket}
+        history={history}
+        archived={archived}
+        refreshKey={turns}
+        onChanged={onChanged}
+      />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <aside
