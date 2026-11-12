@@ -182,14 +182,33 @@ const CHAT_EVENTS = new Set([
  * event. Resolves with the final `done`, `error` or `cancelled` event; an error before the stream
  * throws `ApiError` like every other call.
  */
-export async function sendFeatureMessage(
+export function sendFeatureMessage(
   projectId: number,
   featureId: number,
   input: string | { questionsId: number; answers: QuestionAnswer[] },
-  {
-    signal,
-    onEvent,
-  }: { signal?: AbortSignal; onEvent: (event: FeatureChatEvent) => void }
+  options: ChatStreamOptions
+): Promise<FeatureChatEvent> {
+  return streamChat(
+    `${featuresPath(projectId)}/${featureId}/messages`,
+    typeof input === "string" ? { message: input } : input,
+    options
+  )
+}
+
+export type ChatStreamOptions = {
+  signal?: AbortSignal
+  onEvent: (event: FeatureChatEvent) => void
+}
+
+/**
+ * POSTs `body` as JSON to a chat route and reads the NDJSON reply as it streams, for the feature chat and the
+ * ticket chat alike. Resolves with the final `done`, `error` or `cancelled` event; an error before the stream
+ * throws `ApiError` like every other call.
+ */
+export async function streamChat(
+  path: string,
+  body: unknown,
+  { signal, onEvent }: ChatStreamOptions
 ): Promise<FeatureChatEvent> {
   const headers = new Headers({
     Accept: "application/x-ndjson",
@@ -197,17 +216,12 @@ export async function sendFeatureMessage(
   })
   const token = getPassword()
   if (token) headers.set("Authorization", `Bearer ${token}`)
-  const response = await fetch(
-    `${API_BASE_URL}${featuresPath(projectId)}/${featureId}/messages`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify(
-        typeof input === "string" ? { message: input } : input
-      ),
-      signal,
-    }
-  )
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  })
   if (!response.ok || !response.body) {
     const type = response.headers.get("Content-Type") ?? ""
     const body = type.includes("json")

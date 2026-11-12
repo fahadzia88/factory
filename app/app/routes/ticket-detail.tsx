@@ -8,6 +8,7 @@ import {
   TicketStatusBadge,
   TicketTypeBadge,
 } from "~/components/tickets/ticket-badges"
+import { TicketChat } from "~/components/tickets/ticket-chat"
 import { TicketDetailsCard } from "~/components/tickets/ticket-details-card"
 import { TicketHistory } from "~/components/tickets/ticket-history"
 import { TicketNotFound } from "~/components/tickets/ticket-not-found"
@@ -192,6 +193,15 @@ export default function TicketDetail({ loaderData }: Route.ComponentProps) {
         archived={archived}
         refreshKey={turns}
         onChanged={onChanged}
+        side={
+          <TicketChat
+            projectId={ticket.projectId}
+            ticketId={ticket.id}
+            mode={ticket.mode}
+            archived={archived}
+            onTurnEnd={onChanged}
+          />
+        }
       />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">

@@ -1,4 +1,5 @@
 import { api, ApiError, apiErrorMessage, problemDetail } from "~/lib/api"
+import { streamChat, type ChatStreamOptions } from "~/lib/features"
 
 export const TICKET_TYPES = ["bug", "improvement"] as const
 export type TicketType = (typeof TICKET_TYPES)[number]
@@ -175,6 +176,33 @@ export const openTicketPull = (
   ticketId: number,
   options: { title?: string; replaceLink?: boolean } = {}
 ) => api.post<Ticket>(`${ticketPath(projectId, ticketId)}/pull`, options)
+
+export type TicketMessage = {
+  id: number
+  role: "user" | "assistant"
+  text: string
+  createdAt: string
+}
+
+export const listTicketMessages = (projectId: number, ticketId: number) =>
+  api.get<TicketMessage[]>(`${ticketPath(projectId, ticketId)}/messages`)
+
+/** Sends a chat message and reads the agent's NDJSON reply as it streams; see `streamChat`. */
+export function sendTicketMessage(
+  projectId: number,
+  ticketId: number,
+  message: string,
+  options: ChatStreamOptions
+) {
+  return streamChat(
+    `${ticketPath(projectId, ticketId)}/messages`,
+    { message },
+    options
+  )
+}
+
+export const cancelTicketChat = (projectId: number, ticketId: number) =>
+  api.post<{ cancelled: boolean }>(`${ticketPath(projectId, ticketId)}/cancel`)
 
 export type TicketError = {
   /** null when the request never got a response */
