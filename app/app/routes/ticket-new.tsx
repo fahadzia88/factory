@@ -104,7 +104,7 @@ export async function clientAction({
   try {
     const ticket = await createTicket(id, values)
     toast.success(`Ticket #${ticket.number} created`)
-    return redirect(`/projects/${id}/tickets`)
+    return redirect(`/projects/${id}/tickets/${ticket.id}`)
   } catch (error) {
     const problem = ticketError(error)
     return { values, formError: problem.message, retryable: problem.retryable }
