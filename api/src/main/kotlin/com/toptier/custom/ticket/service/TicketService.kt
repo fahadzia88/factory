@@ -15,6 +15,7 @@ import com.toptier.custom.ticket.exception.InvalidTicketRequestException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
+import com.toptier.custom.ticket.exception.WorkspaceNotNeededException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
@@ -38,6 +39,8 @@ class TicketService(
 	private val history: TicketHistory,
 	private val jsonMapper: JsonMapper,
 	private val clock: Clock,
+	private val workspace: TicketWorkspace,
+	private val worktrees: TicketWorktrees,
 	transactionManager: PlatformTransactionManager,
 ) {
 
@@ -126,10 +129,29 @@ class TicketService(
 
 	/**
 	 * Moves the ticket to [rawStatus] (a JSON value like `in_review`) when [TicketStatusRules] allow it from its
-	 * current status, writing one `status` entry. A refused move changes and writes nothing.
+	 * current status, writing one `status` entry. A refused move changes and writes nothing. The move to
+	 * `in_progress` then builds the workspace unless it is ready; that runs after the status is saved, outside
+	 * its transaction, and a failure there is kept on the ticket while the status stands.
 	 */
-	@Transactional
 	fun changeStatus(projectId: Long, ticketId: Long, rawStatus: String?): Ticket {
+		val moved = transaction.execute { move(projectId, ticketId, rawStatus) }!!
+		if (moved.status == TicketStatus.IN_PROGRESS && moved.workspaceState != READY) workspace.ensure(moved.id!!)
+		return get(projectId, ticketId)
+	}
+
+	/** Runs the workspace again for a ticket whose workspace failed. */
+	fun retryWorkspace(projectId: Long, ticketId: Long): Ticket {
+		val ticket = get(projectId, ticketId)
+		requireActive(projectId)
+		if (ticket.workspaceState != FAILED) throw WorkspaceNotNeededException()
+		workspace.ensure(ticket.id!!)
+		return get(projectId, ticketId)
+	}
+
+	/** The worktree of the ticket's branch, or null when it has no workspace or no worktree has the branch. */
+	fun worktreeOf(ticket: Ticket): TicketWorktree? = ticket.branch?.let { worktrees.find(ticket.projectId, it) }
+
+	private fun move(projectId: Long, ticketId: Long, rawStatus: String?): Ticket {
 		val ticket = get(projectId, ticketId)
 		requireActive(projectId)
 		val target = TicketStatus.fromValue(rawStatus)
@@ -142,7 +164,6 @@ class TicketService(
 		ticket.updatedAt = clock.instant()
 		tickets.save(ticket)
 		history.record(ticket.id!!, TicketEvent.KIND_STATUS, "status", old.value, target.value)
-		onStatusChanged(ticket, old)
 		return ticket
 	}
 
@@ -156,9 +177,6 @@ class TicketService(
 	/** True when the project is archived, so its tickets have no allowed statuses. */
 	@Transactional(readOnly = true)
 	fun archived(projectId: Long): Boolean = projects.get(projectId).archived
-
-	/** Called after a status change was saved and recorded; the workspace is started from here by a later task. */
-	private fun onStatusChanged(ticket: Ticket, old: TicketStatus) = Unit
 
 	/** The ticket's history, oldest first. */
 	@Transactional(readOnly = true)
@@ -236,6 +254,8 @@ class TicketService(
 		const val TITLE_MAX = 200
 		const val DESCRIPTION_MAX = 10_000
 		const val LINK_MAX = 500
+		const val READY = "ready"
+		const val FAILED = "failed"
 		const val PRIORITY_CHOICES = "Choose a priority: low, medium, high or critical."
 		val EDITABLE = setOf("title", "description", "priority", "pullRequestUrl")
 	}

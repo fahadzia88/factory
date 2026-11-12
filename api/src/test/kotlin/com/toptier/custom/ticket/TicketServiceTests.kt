@@ -20,6 +20,8 @@ import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
 import com.toptier.custom.ticket.service.TicketHistory
 import com.toptier.custom.ticket.service.TicketService
+import com.toptier.custom.ticket.service.TicketWorkspace
+import com.toptier.custom.ticket.service.TicketWorktrees
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -53,6 +55,12 @@ class TicketServiceTests {
 
 	@MockitoBean
 	lateinit var projects: ProjectService
+
+	@MockitoBean
+	lateinit var workspace: TicketWorkspace
+
+	@MockitoBean
+	lateinit var worktrees: TicketWorktrees
 
 	@BeforeEach
 	fun projects() {

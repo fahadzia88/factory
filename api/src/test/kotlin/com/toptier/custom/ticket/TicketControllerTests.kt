@@ -17,7 +17,9 @@ import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
+import com.toptier.custom.ticket.exception.WorkspaceNotNeededException
 import com.toptier.custom.ticket.service.TicketService
+import com.toptier.custom.ticket.service.TicketWorktree
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
@@ -241,6 +243,47 @@ class TicketControllerTests {
 		mockMvc.post("$BASE/21/status") { auth(); json("""{"status":"done"}""") }.andExpect { problem(400, "invalid_ticket") }
 		mockMvc.post("$BASE/22/status") { auth(); json("""{"status":"open"}""") }.andExpect { problem(404, "ticket_not_found") }
 		mockMvc.post("/api/projects/14/tickets/21/status") { auth(); json("""{"status":"open"}""") }.andExpect { problem(409, "project_archived") }
+	}
+
+	@Test
+	fun `a ticket with a workspace answers its branch, folder and worktree`() {
+		val ready = ticket().apply {
+			branch = "bugs/3-login-fails"
+			folder = "feature/bugs/3-login-fails"
+			workspaceState = "ready"
+		}
+		given(tickets.get(12, 21)).willReturn(ready)
+		given(tickets.worktreeOf(ready)).willReturn(TicketWorktree(9, "/repos/12.worktrees/bugs__3-login-fails", false))
+
+		mockMvc.get("$BASE/21") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.workspace.state") { value("ready") }
+			jsonPath("$.workspace.branch") { value("bugs/3-login-fails") }
+			jsonPath("$.workspace.folder") { value("feature/bugs/3-login-fails") }
+			jsonPath("$.workspace.worktree.id") { value(9) }
+			jsonPath("$.workspace.worktree.path") { value("/repos/12.worktrees/bugs__3-login-fails") }
+			jsonPath("$.workspace.worktree.missing") { value(false) }
+		}
+	}
+
+	@Test
+	fun `a failed workspace shows its error, and a retry answers the ticket or the refusal`() {
+		val failed = ticket().apply {
+			workspaceState = "failed"
+			workspaceError = "The push was rejected."
+		}
+		given(tickets.retryWorkspace(12, 21)).willReturn(failed)
+		given(tickets.retryWorkspace(12, 22)).willThrow(WorkspaceNotNeededException())
+		given(tickets.retryWorkspace(14, 21)).willThrow(TicketProjectArchivedException())
+
+		mockMvc.post("$BASE/21/workspace").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/workspace") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.workspace.state") { value("failed") }
+			jsonPath("$.workspace.error") { value("The push was rejected.") }
+		}
+		mockMvc.post("$BASE/22/workspace") { auth() }.andExpect { problem(409, "workspace_not_needed") }
+		mockMvc.post("/api/projects/14/tickets/21/workspace") { auth() }.andExpect { problem(409, "project_archived") }
 	}
 
 	@Test
