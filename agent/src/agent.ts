@@ -23,6 +23,12 @@ import { taskEditFile } from "./tools/task-edit-file.ts";
 import { taskListFiles } from "./tools/task-list-files.ts";
 import { taskReadFile } from "./tools/task-read-file.ts";
 import { taskWriteFile } from "./tools/task-write-file.ts";
+import { ticketEditFile } from "./tools/ticket-edit-file.ts";
+import { ticketGet } from "./tools/ticket-get.ts";
+import { ticketListFiles } from "./tools/ticket-list-files.ts";
+import { ticketReadFile } from "./tools/ticket-read-file.ts";
+import { ticketWriteDetails } from "./tools/ticket-write-details.ts";
+import { ticketWriteFile } from "./tools/ticket-write-file.ts";
 
 /**
  * The project's tools, built with `tool()` from the SDK (see README.md, "Tools").
@@ -52,6 +58,12 @@ const tools: Parameters<typeof createSdkMcpServer>[0]["tools"] = [
   taskOpenPull,
   taskRestack,
   featureComplete,
+  ticketGet,
+  ticketListFiles,
+  ticketReadFile,
+  ticketWriteDetails,
+  ticketWriteFile,
+  ticketEditFile,
 ];
 
 const instructions = readFileSync(new URL("./instructions.md", import.meta.url), "utf8");
