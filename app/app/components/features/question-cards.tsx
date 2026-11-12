@@ -58,11 +58,11 @@ function PendingCards({
     setChosen((all) => all.map((c, j) => (j === i ? values : c)))
 
   return (
-    <Card className="w-full min-w-0">
+    <Card className="w-full min-w-0 shrink-0">
       <CardContent className="flex flex-col gap-6">
         {set.questions.map((question, i) => (
           <QuestionField
-            key={question.header}
+            key={`${i}-${question.header}`}
             question={question}
             chosen={chosen[i]}
             other={others[i]}
@@ -74,13 +74,18 @@ function PendingCards({
           />
         ))}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="gap-3">
         <Button
           disabled={disabled || !complete}
           onClick={() => onSubmit(answers)}
         >
           Send answers
         </Button>
+        {disabled && (
+          <span className="text-xs text-muted-foreground">
+            Waiting for the agent to finish…
+          </span>
+        )}
       </CardFooter>
     </Card>
   )
@@ -182,7 +187,7 @@ function QuestionField({
 
 function AnsweredCards({ set }: { set: QuestionSet }) {
   return (
-    <Card className="w-full min-w-0">
+    <Card className="w-full min-w-0 shrink-0">
       <CardContent className="flex flex-col gap-3">
         {set.answers === null ? (
           <p className="text-sm text-muted-foreground">Answered in the chat</p>
@@ -195,7 +200,7 @@ function AnsweredCards({ set }: { set: QuestionSet }) {
             ]
             return (
               <div
-                key={question.header}
+                key={`${i}-${question.header}`}
                 className="flex min-w-0 flex-col gap-1"
               >
                 <Badge variant="outline">{question.header}</Badge>
