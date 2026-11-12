@@ -8,11 +8,15 @@ import com.toptier.custom.checkout.exception.GitCommandException
 import com.toptier.custom.checkout.exception.GitNotConfiguredException
 import com.toptier.custom.checkout.exception.GitRemoteException
 import com.toptier.custom.checkout.exception.GitTimeoutException
+import com.toptier.custom.checkout.exception.PushDefaultBranchException
+import com.toptier.custom.checkout.exception.PushRejectedException
+import com.toptier.custom.checkout.exception.WorktreeMissingException
 import com.toptier.custom.checkout.exception.describe
 import com.toptier.custom.project.exception.ProjectNotFoundException
 import com.toptier.custom.ticket.exception.AlreadyApprovedException
 import com.toptier.custom.ticket.exception.InvalidTicketException
 import com.toptier.custom.ticket.exception.NoFindingsException
+import com.toptier.custom.ticket.exception.NothingCommittedException
 import com.toptier.custom.ticket.exception.WorkspaceMissingException
 import com.toptier.custom.ticket.exception.InvalidTicketRequestException
 import com.toptier.custom.ticket.exception.InvalidTransitionException
@@ -57,6 +61,7 @@ class TicketExceptionHandler {
 		is WorkspaceMissingException -> problem(HttpStatus.CONFLICT, "workspace_missing", ex.message!!)
 		is NoFindingsException -> problem(HttpStatus.CONFLICT, "no_findings", ex.message!!)
 		is AlreadyApprovedException -> problem(HttpStatus.CONFLICT, "already_approved", ex.message!!)
+		is NothingCommittedException -> problem(HttpStatus.CONFLICT, "nothing_committed", ex.message!!)
 	}
 
 	/** Thrown by the checkout package; the workspace keeps these on the ticket, so they reach here only from other routes. */
@@ -74,6 +79,18 @@ class TicketExceptionHandler {
 	@ExceptionHandler(BranchCheckedOutException::class)
 	fun handleBranchCheckedOut(ex: BranchCheckedOutException): ProblemDetail =
 		problem(HttpStatus.CONFLICT, "branch_checked_out", ex.message!!)
+
+	@ExceptionHandler(PushRejectedException::class)
+	fun handlePushRejected(ex: PushRejectedException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "push_rejected", ex.message!!)
+
+	@ExceptionHandler(PushDefaultBranchException::class)
+	fun handlePushDefaultBranch(ex: PushDefaultBranchException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "push_default_branch", ex.message!!)
+
+	@ExceptionHandler(WorktreeMissingException::class)
+	fun handleWorktreeMissing(ex: WorktreeMissingException): ProblemDetail =
+		problem(HttpStatus.CONFLICT, "workspace_missing", ex.message!!)
 
 	@ExceptionHandler(GitRemoteException::class)
 	fun handleGitRemote(ex: GitRemoteException): ProblemDetail {

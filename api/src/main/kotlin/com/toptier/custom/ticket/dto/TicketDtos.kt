@@ -31,6 +31,15 @@ data class CreateTicketRequest(
 	val priority: String? = null,
 )
 
+/** Body of `POST …/tickets/{ticketId}/commit`; a blank [message] means `#<number> <title>`. */
+data class CommitTicketRequest(val message: String? = null)
+
+/** What a commit did: [sha] is null, and [committed] false, when there was nothing to commit. */
+data class CommitTicketResponse(val committed: Boolean, val sha: String?)
+
+/** The pushed [branch] and the short SHA of its [head]. */
+data class PushTicketResponse(val branch: String, val head: String)
+
 /** The worktree of a ticket's branch; [missing] when its folder isn't on disk. */
 data class TicketWorktreeResponse(val id: Long, val path: String, val missing: Boolean)
 

@@ -38,5 +38,9 @@ class NoFindingsException : TicketException("details.md has no findings yet. Ask
 /** The investigation was approved already. */
 class AlreadyApprovedException : TicketException("The investigation was approved already.")
 
+/** The ticket's branch has no commit beyond the default branch, so there is nothing to push. */
+class NothingCommittedException :
+	TicketException("The branch has no commits beyond the default branch yet. Commit your changes first.")
+
 /** The project is archived, so its tickets can be read but not changed. */
 class TicketProjectArchivedException : TicketException("This project is archived. Restore it to change its tickets.")

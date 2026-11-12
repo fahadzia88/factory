@@ -2,7 +2,10 @@ package com.toptier.custom.ticket.controller
 
 import com.toptier.custom.ticket.domain.Ticket
 import com.toptier.custom.ticket.domain.TicketStatus
+import com.toptier.custom.ticket.dto.CommitTicketRequest
+import com.toptier.custom.ticket.dto.CommitTicketResponse
 import com.toptier.custom.ticket.dto.CreateTicketRequest
+import com.toptier.custom.ticket.dto.PushTicketResponse
 import com.toptier.custom.ticket.dto.SetTicketStatusRequest
 import com.toptier.custom.ticket.dto.StatusInfoResponse
 import com.toptier.custom.ticket.dto.TicketDetailsResponse
@@ -87,6 +90,19 @@ class TicketController(
 	@PostMapping("/{ticketId}/approve")
 	fun approve(@PathVariable id: Long, @PathVariable ticketId: Long): TicketResponse =
 		respond(tickets.approve(id, ticketId))
+
+	/** Commits everything in the ticket's worktree; with nothing to commit, answers `committed: false`. */
+	@PostMapping("/{ticketId}/commit")
+	fun commit(
+		@PathVariable id: Long,
+		@PathVariable ticketId: Long,
+		@RequestBody(required = false) request: CommitTicketRequest?,
+	): CommitTicketResponse = tickets.commit(id, ticketId, request?.message).let { CommitTicketResponse(it.committed, it.sha) }
+
+	/** Pushes the ticket's branch to GitHub. */
+	@PostMapping("/{ticketId}/push")
+	fun push(@PathVariable id: Long, @PathVariable ticketId: Long): PushTicketResponse =
+		tickets.push(id, ticketId).let { PushTicketResponse(it.branch, it.head) }
 
 	/** The ticket's history, oldest first. */
 	@GetMapping("/{ticketId}/history")

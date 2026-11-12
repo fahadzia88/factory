@@ -1,5 +1,6 @@
 package com.toptier.custom.ticket.service
 
+import com.toptier.custom.checkout.service.PushResult
 import com.toptier.custom.project.service.ProjectService
 import com.toptier.custom.ticket.domain.Ticket
 import com.toptier.custom.ticket.domain.TicketEvent
@@ -42,6 +43,7 @@ class TicketService(
 	private val workspace: TicketWorkspace,
 	private val worktrees: TicketWorktrees,
 	private val details: TicketDetails,
+	private val git: TicketGit,
 	transactionManager: PlatformTransactionManager,
 ) {
 
@@ -154,6 +156,12 @@ class TicketService(
 
 	/** Approves the investigation; see [TicketDetails.approve]. */
 	fun approve(projectId: Long, ticketId: Long): Ticket = details.approve(projectId, ticketId)
+
+	/** Commits the ticket's worktree; see [TicketGit.commit]. */
+	fun commit(projectId: Long, ticketId: Long, message: String?): CommitResult = git.commit(projectId, ticketId, message)
+
+	/** Pushes the ticket's branch; see [TicketGit.push]. */
+	fun push(projectId: Long, ticketId: Long): PushResult = git.push(projectId, ticketId)
 
 	/** True when the agent has written findings into the ticket's `details.md`. */
 	fun hasFindings(ticket: Ticket): Boolean = details.hasFindings(ticket)
