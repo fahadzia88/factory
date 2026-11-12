@@ -41,6 +41,7 @@ class TicketService(
 	private val clock: Clock,
 	private val workspace: TicketWorkspace,
 	private val worktrees: TicketWorktrees,
+	private val details: TicketDetails,
 	transactionManager: PlatformTransactionManager,
 ) {
 
@@ -147,6 +148,15 @@ class TicketService(
 		workspace.ensure(ticket.id!!)
 		return get(projectId, ticketId)
 	}
+
+	/** The ticket's `details.md`; see [TicketDetails.get]. */
+	fun details(projectId: Long, ticketId: Long): TicketDetailsView = details.get(projectId, ticketId)
+
+	/** Approves the investigation; see [TicketDetails.approve]. */
+	fun approve(projectId: Long, ticketId: Long): Ticket = details.approve(projectId, ticketId)
+
+	/** True when the agent has written findings into the ticket's `details.md`. */
+	fun hasFindings(ticket: Ticket): Boolean = details.hasFindings(ticket)
 
 	/** The worktree of the ticket's branch, or null when it has no workspace or no worktree has the branch. */
 	fun worktreeOf(ticket: Ticket): TicketWorktree? = ticket.branch?.let { worktrees.find(ticket.projectId, it) }
