@@ -29,6 +29,7 @@ import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.WorkspaceNotNeededException
 import com.toptier.custom.ticket.service.TicketDetails
 import com.toptier.custom.ticket.service.TicketDetailsTemplate
+import com.toptier.custom.ticket.service.TicketGit
 import com.toptier.custom.ticket.service.TicketHistory
 import com.toptier.custom.ticket.service.TicketService
 import com.toptier.custom.ticket.service.TicketWorkspace
@@ -55,7 +56,7 @@ import kotlin.test.assertTrue
 /** Builds ticket workspaces against `file://` bare remotes. */
 @DataJpaTest
 @Import(
-	TicketService::class, TicketHistory::class, TicketWorkspace::class, TicketWorktrees::class, TicketDetails::class,
+	TicketService::class, TicketHistory::class, TicketWorkspace::class, TicketWorktrees::class, TicketDetails::class, TicketGit::class,
 	WorktreeService::class, CheckoutService::class, WorktreeInspector::class, ProjectService::class,
 	CheckoutLocks::class, GitRunner::class, CheckoutPaths::class, CheckoutTestConfig::class, FeatureTestConfig::class,
 )

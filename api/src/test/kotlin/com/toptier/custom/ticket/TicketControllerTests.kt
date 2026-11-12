@@ -17,7 +17,11 @@ import com.toptier.custom.ticket.exception.InvalidTransitionException
 import com.toptier.custom.ticket.exception.TicketNotFoundException
 import com.toptier.custom.ticket.exception.TicketProjectArchivedException
 import com.toptier.custom.ticket.exception.TicketTypeFixedException
+import com.toptier.custom.checkout.exception.PushRejectedException
+import com.toptier.custom.checkout.service.PushResult
 import com.toptier.custom.ticket.exception.AlreadyApprovedException
+import com.toptier.custom.ticket.exception.NothingCommittedException
+import com.toptier.custom.ticket.service.CommitResult
 import com.toptier.custom.ticket.exception.NoFindingsException
 import com.toptier.custom.ticket.exception.WorkspaceMissingException
 import com.toptier.custom.ticket.exception.WorkspaceNotNeededException
@@ -329,6 +333,49 @@ class TicketControllerTests {
 		mockMvc.post("$BASE/23/approve") { auth() }.andExpect { problem(409, "already_approved") }
 		mockMvc.post("$BASE/24/approve") { auth() }.andExpect { problem(409, "workspace_missing") }
 		mockMvc.post("/api/projects/14/tickets/21/approve") { auth() }.andExpect { problem(409, "project_archived") }
+	}
+
+	@Test
+	fun `commit answers the short sha, or that nothing was committed`() {
+		given(tickets.commit(12, 21, "Fix")).willReturn(CommitResult(true, "ab12cd3"))
+		given(tickets.commit(12, 21, null)).willReturn(CommitResult(false, null))
+		given(tickets.commit(12, 22, "Fix")).willThrow(WorkspaceMissingException())
+		given(tickets.commit(12, 21, "long")).willThrow(InvalidTicketRequestException("Use 200 characters or fewer for the message."))
+		given(tickets.commit(14, 21, "Fix")).willThrow(TicketProjectArchivedException())
+
+		mockMvc.post("$BASE/21/commit") { json("""{"message":"Fix"}""") }.andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/commit") { auth(); json("""{"message":"Fix"}""") }.andExpect {
+			status { isOk() }
+			jsonPath("$.committed") { value(true) }
+			jsonPath("$.sha") { value("ab12cd3") }
+		}
+		mockMvc.post("$BASE/21/commit") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.committed") { value(false) }
+			jsonPath("$.sha") { value(null as Any?) }
+		}
+		mockMvc.post("$BASE/22/commit") { auth(); json("""{"message":"Fix"}""") }.andExpect { problem(409, "workspace_missing") }
+		mockMvc.post("$BASE/21/commit") { auth(); json("""{"message":"long"}""") }.andExpect { problem(400, "invalid_request") }
+		mockMvc.post("/api/projects/14/tickets/21/commit") { auth(); json("""{"message":"Fix"}""") }
+			.andExpect { problem(409, "project_archived") }
+	}
+
+	@Test
+	fun `push answers the branch and head, or why not`() {
+		given(tickets.push(12, 21)).willReturn(PushResult("bugs/3-login-fails", "ab12cd3"))
+		given(tickets.push(12, 22)).willThrow(NothingCommittedException())
+		given(tickets.push(12, 23)).willThrow(PushRejectedException(lease = false))
+		given(tickets.push(12, 24)).willThrow(WorkspaceMissingException())
+
+		mockMvc.post("$BASE/21/push").andExpect { status { isUnauthorized() } }
+		mockMvc.post("$BASE/21/push") { auth() }.andExpect {
+			status { isOk() }
+			jsonPath("$.branch") { value("bugs/3-login-fails") }
+			jsonPath("$.head") { value("ab12cd3") }
+		}
+		mockMvc.post("$BASE/22/push") { auth() }.andExpect { problem(409, "nothing_committed") }
+		mockMvc.post("$BASE/23/push") { auth() }.andExpect { problem(409, "push_rejected") }
+		mockMvc.post("$BASE/24/push") { auth() }.andExpect { problem(409, "workspace_missing") }
 	}
 
 	@Test
