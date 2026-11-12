@@ -21,6 +21,7 @@ import com.toptier.custom.ticket.exception.TicketTypeFixedException
 import com.toptier.custom.ticket.service.TicketDetails
 import com.toptier.custom.ticket.service.TicketGit
 import com.toptier.custom.ticket.service.TicketHistory
+import com.toptier.custom.ticket.service.TicketPulls
 import com.toptier.custom.ticket.service.TicketService
 import com.toptier.custom.ticket.service.TicketWorkspace
 import com.toptier.custom.ticket.service.TicketWorktrees
@@ -69,6 +70,9 @@ class TicketServiceTests {
 
 	@MockitoBean
 	lateinit var git: TicketGit
+
+	@MockitoBean
+	lateinit var pullRequests: TicketPulls
 
 	@BeforeEach
 	fun projects() {

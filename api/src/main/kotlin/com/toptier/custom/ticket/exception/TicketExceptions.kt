@@ -42,5 +42,19 @@ class AlreadyApprovedException : TicketException("The investigation was approved
 class NothingCommittedException :
 	TicketException("The branch has no commits beyond the default branch yet. Commit your changes first.")
 
+/** The ticket's branch isn't on GitHub yet, so a pull request can't be opened for it. */
+class BranchNotPushedException(branch: String) : TicketException("Push $branch before opening its pull request.")
+
+/** The ticket's branch has no commit beyond the default branch, so there is nothing to put in a pull request. */
+class NothingToCompareException :
+	TicketException("The branch has no commits beyond the default branch, so there is nothing to compare.")
+
+/** A pull request was already created from this ticket. */
+class TicketPullExistsException : TicketException("A pull request was already created for this ticket.")
+
+/** The ticket has a pull request link that was typed by hand; creating one replaces it only when confirmed. */
+class PullLinkSetException :
+	TicketException("This ticket has a pull request link you entered. Confirm to replace it with the new pull request.")
+
 /** The project is archived, so its tickets can be read but not changed. */
 class TicketProjectArchivedException : TicketException("This project is archived. Restore it to change its tickets.")

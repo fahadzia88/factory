@@ -44,6 +44,7 @@ class TicketService(
 	private val worktrees: TicketWorktrees,
 	private val details: TicketDetails,
 	private val git: TicketGit,
+	private val pullRequests: TicketPulls,
 	transactionManager: PlatformTransactionManager,
 ) {
 
@@ -156,6 +157,10 @@ class TicketService(
 
 	/** Approves the investigation; see [TicketDetails.approve]. */
 	fun approve(projectId: Long, ticketId: Long): Ticket = details.approve(projectId, ticketId)
+
+	/** Opens the ticket's pull request; see [TicketPulls.open]. */
+	fun openPull(projectId: Long, ticketId: Long, title: String?, replaceLink: Boolean): Ticket =
+		pullRequests.open(projectId, ticketId, title, replaceLink)
 
 	/** Commits the ticket's worktree; see [TicketGit.commit]. */
 	fun commit(projectId: Long, ticketId: Long, message: String?): CommitResult = git.commit(projectId, ticketId, message)
