@@ -1,6 +1,7 @@
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
+  BugIcon,
   ExternalLinkIcon,
   FolderGit2Icon,
   GitPullRequestIcon,
@@ -28,6 +29,7 @@ import {
   UnverifiedBadge,
 } from "~/components/projects/project-status-badge"
 import { PullRequestsCard } from "~/components/pull-requests/pull-request-list"
+import { TicketsCard } from "~/components/tickets/tickets-card"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
@@ -194,6 +196,10 @@ export default function ProjectDetail({
               <LayersIcon />
               Features
             </TabsTrigger>
+            <TabsTrigger value="tickets">
+              <BugIcon />
+              Tickets
+            </TabsTrigger>
             <TabsTrigger value="pull-requests">
               <GitPullRequestIcon />
               Pull requests
@@ -205,6 +211,9 @@ export default function ProjectDetail({
           </TabsList>
           <TabsContent value="features" className="min-w-0">
             <FeaturesCard projectId={project.id} archived={project.archived} />
+          </TabsContent>
+          <TabsContent value="tickets" className="min-w-0">
+            <TicketsCard projectId={project.id} archived={project.archived} />
           </TabsContent>
           <TabsContent value="pull-requests" className="min-w-0">
             <PullRequestsCard
