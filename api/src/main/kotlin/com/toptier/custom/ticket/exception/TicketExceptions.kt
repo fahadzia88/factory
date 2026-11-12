@@ -24,5 +24,8 @@ class InvalidTransitionException(val from: TicketStatus, val to: TicketStatus, v
 			if (allowed.isEmpty()) "It has no further status." else "It can move to: ${allowed.joinToString(", ") { it.value }}.",
 	)
 
+/** The ticket's workspace didn't fail, so there is nothing to retry. */
+class WorkspaceNotNeededException : TicketException("This ticket's workspace didn't fail, so there is nothing to retry.")
+
 /** The project is archived, so its tickets can be read but not changed. */
 class TicketProjectArchivedException : TicketException("This project is archived. Restore it to change its tickets.")

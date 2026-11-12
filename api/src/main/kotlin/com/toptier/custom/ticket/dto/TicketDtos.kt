@@ -5,6 +5,7 @@ import com.toptier.custom.ticket.domain.TicketEvent
 import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.domain.TicketType
 import com.toptier.custom.ticket.service.TicketStatusRules
+import com.toptier.custom.ticket.service.TicketWorktree
 import java.time.Instant
 
 /** Body of `POST …/tickets/{ticketId}/status`; [status] is a JSON status value like `in_progress`. */
@@ -67,7 +68,7 @@ data class TicketResponse(
 		 * The ticket with the resting values of the fields later tasks fill in. An [archived] project's ticket
 		 * has no allowed statuses.
 		 */
-		fun from(ticket: Ticket, archived: Boolean = false) = TicketResponse(
+		fun from(ticket: Ticket, archived: Boolean = false, worktree: TicketWorktree? = null) = TicketResponse(
 			id = ticket.id!!,
 			projectId = ticket.projectId,
 			number = ticket.number,
@@ -85,7 +86,7 @@ data class TicketResponse(
 				error = ticket.workspaceError,
 				branch = ticket.branch,
 				folder = ticket.folder,
-				worktree = null,
+				worktree = worktree?.let { TicketWorktreeResponse(it.id, it.path, it.missing) },
 			),
 			mode = ticket.mode,
 			approvedAt = ticket.approvedAt,

@@ -1,5 +1,6 @@
 package com.toptier.custom.ticket.controller
 
+import com.toptier.custom.ticket.domain.Ticket
 import com.toptier.custom.ticket.domain.TicketStatus
 import com.toptier.custom.ticket.dto.CreateTicketRequest
 import com.toptier.custom.ticket.dto.SetTicketStatusRequest
@@ -34,13 +35,13 @@ class TicketController(
 	): List<TicketResponse> {
 		val found = tickets.list(id, type, status)
 		val archived = tickets.archived(id)
-		return found.map { TicketResponse.from(it, archived) }
+		return found.map { respond(it, archived) }
 	}
 
 	/** Files a ticket. */
 	@PostMapping
 	fun create(@PathVariable id: Long, @RequestBody request: CreateTicketRequest): ResponseEntity<TicketResponse> =
-		ResponseEntity.status(HttpStatus.CREATED).body(TicketResponse.from(tickets.create(id, request)))
+		ResponseEntity.status(HttpStatus.CREATED).body(respond(tickets.create(id, request)))
 
 	/** Every status with its description and the ticket types that can have it. */
 	@GetMapping("/statuses")
@@ -50,7 +51,7 @@ class TicketController(
 	/** One ticket. */
 	@GetMapping("/{ticketId}")
 	fun get(@PathVariable id: Long, @PathVariable ticketId: Long): TicketResponse =
-		TicketResponse.from(tickets.get(id, ticketId), tickets.archived(id))
+		respond(tickets.get(id, ticketId), tickets.archived(id))
 
 	/**
 	 * Changes the fields present in the body. The body is read as a map so a missing field and a `null` one
@@ -61,18 +62,27 @@ class TicketController(
 		@PathVariable id: Long,
 		@PathVariable ticketId: Long,
 		@RequestBody changes: Map<String, Any?>,
-	): TicketResponse = TicketResponse.from(tickets.edit(id, ticketId, changes))
+	): TicketResponse = respond(tickets.edit(id, ticketId, changes))
 
-	/** Moves the ticket to another status, if the flow allows it. */
+	/** Moves the ticket to another status, if the flow allows it. The first `in_progress` builds its workspace. */
 	@PostMapping("/{ticketId}/status")
 	fun setStatus(
 		@PathVariable id: Long,
 		@PathVariable ticketId: Long,
 		@RequestBody request: SetTicketStatusRequest,
-	): TicketResponse = TicketResponse.from(tickets.changeStatus(id, ticketId, request.status))
+	): TicketResponse = respond(tickets.changeStatus(id, ticketId, request.status))
+
+	/** Builds the rest of a workspace that failed, without repeating what is done. */
+	@PostMapping("/{ticketId}/workspace")
+	fun retryWorkspace(@PathVariable id: Long, @PathVariable ticketId: Long): TicketResponse =
+		respond(tickets.retryWorkspace(id, ticketId))
 
 	/** The ticket's history, oldest first. */
 	@GetMapping("/{ticketId}/history")
 	fun history(@PathVariable id: Long, @PathVariable ticketId: Long): List<TicketEventResponse> =
 		tickets.history(id, ticketId).map(TicketEventResponse::from)
+
+	/** The ticket as JSON; changes only reach active projects, so [archived] is true only when reading. */
+	private fun respond(ticket: Ticket, archived: Boolean = false): TicketResponse =
+		TicketResponse.from(ticket, archived, tickets.worktreeOf(ticket))
 }
