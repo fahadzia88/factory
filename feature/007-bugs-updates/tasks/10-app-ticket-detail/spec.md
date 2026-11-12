@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 10-app-ticket-detail
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/10-app-ticket-detail
 base: feat/007-bugs-updates/09-app-ticket-list
 covers: [AC-5, AC-6, AC-13, AC-14, AC-15, AC-17, AC-18, AC-35, AC-36, AC-37]

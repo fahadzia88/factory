@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 11-app-ticket-workspace
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/11-app-ticket-workspace
 base: feat/007-bugs-updates/10-app-ticket-detail
 covers: [AC-23, AC-24, AC-25, AC-27, AC-28, AC-29, AC-30, AC-31, AC-32, AC-33, AC-34, AC-35, AC-37]

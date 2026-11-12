@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 12-app-ticket-chat
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/12-app-ticket-chat
 base: feat/007-bugs-updates/11-app-ticket-workspace
 covers: [AC-25, AC-26, AC-37]

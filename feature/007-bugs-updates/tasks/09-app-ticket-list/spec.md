@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 09-app-ticket-list
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/09-app-ticket-list
 base: feat/007-bugs-updates/08-agent-ticket-tools
 covers: [AC-1, AC-2, AC-3, AC-4, AC-35, AC-36, AC-37]

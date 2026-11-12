@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 07-api-ticket-chat
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/07-api-ticket-chat
 base: feat/007-bugs-updates/06-api-ticket-pull
 covers: [AC-25, AC-26, AC-35]

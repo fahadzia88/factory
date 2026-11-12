@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 02-api-ticket-status
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/02-api-ticket-status
 base: feat/007-bugs-updates/01-api-ticket-foundation
 covers: [AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-18, AC-19, AC-35]

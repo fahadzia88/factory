@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 06-api-ticket-pull
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/06-api-ticket-pull
 base: feat/007-bugs-updates/05-api-ticket-commit-push
 covers: [AC-31, AC-32, AC-33, AC-34, AC-35]

@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 04-api-ticket-details
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/04-api-ticket-details
 base: feat/007-bugs-updates/03-api-ticket-workspace
 covers: [AC-27, AC-28, AC-35]

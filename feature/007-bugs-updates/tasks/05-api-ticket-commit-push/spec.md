@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 05-api-ticket-commit-push
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/05-api-ticket-commit-push
 base: feat/007-bugs-updates/04-api-ticket-details
 covers: [AC-29, AC-30, AC-35]

@@ -2,8 +2,8 @@
 feature: 007-bugs-updates
 task: 08-agent-ticket-tools
 layer: agent
-status: draft
-approved:
+status: approved
+approved: 2026-11-12
 branch: feat/007-bugs-updates/08-agent-ticket-tools
 base: feat/007-bugs-updates/07-api-ticket-chat
 covers: [AC-26, AC-28]
