@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 16-app-apply
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/16-app-apply
 base: feat/008-deployment-and-monitoring/15-app-control-actions
 covers: [AC-24, AC-25, AC-33, AC-34, AC-35, AC-36, AC-31]

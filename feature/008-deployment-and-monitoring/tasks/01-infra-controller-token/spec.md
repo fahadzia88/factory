@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 01-infra-controller-token
 layer: infra
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/01-infra-controller-token
 base: feat/008-deployment-and-monitoring/00-docs
 covers: [AC-4]

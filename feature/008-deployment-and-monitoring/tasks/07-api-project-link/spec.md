@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 07-api-project-link
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/07-api-project-link
 base: feat/008-deployment-and-monitoring/06-api-cluster-endpoints
 covers: [AC-10, AC-32, AC-30]

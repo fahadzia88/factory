@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 11-app-cluster-page
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/11-app-cluster-page
 base: feat/008-deployment-and-monitoring/10-app-clusters
 covers: [AC-6, AC-7, AC-8, AC-9, AC-26, AC-31]

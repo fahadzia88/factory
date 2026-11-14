@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 03-api-controller-client
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/03-api-controller-client
 base: feat/008-deployment-and-monitoring/02-api-clusters
 covers: [AC-4, AC-5, AC-6, AC-29, AC-37]

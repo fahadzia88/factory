@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 08-api-project-read
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/08-api-project-read
 base: feat/008-deployment-and-monitoring/07-api-project-link
 covers: [AC-11, AC-14, AC-15, AC-16, AC-17, AC-18, AC-27, AC-30]

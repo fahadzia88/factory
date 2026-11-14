@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 13-app-deployment-tab
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/13-app-deployment-tab
 base: feat/008-deployment-and-monitoring/12-app-project-link
 covers: [AC-11, AC-12, AC-13, AC-14, AC-17, AC-18, AC-27, AC-28, AC-31]

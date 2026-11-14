@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 06-api-cluster-endpoints
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/06-api-cluster-endpoints
 base: feat/008-deployment-and-monitoring/05-api-client-streams
 covers: [AC-7, AC-8, AC-9, AC-26, AC-30]

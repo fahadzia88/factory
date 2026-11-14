@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 04-api-client-calls
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/04-api-client-calls
 base: feat/008-deployment-and-monitoring/03-api-controller-client
 covers: [AC-4, AC-29, AC-37]

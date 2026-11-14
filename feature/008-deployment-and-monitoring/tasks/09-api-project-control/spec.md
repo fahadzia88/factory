@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 09-api-project-control
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/09-api-project-control
 base: feat/008-deployment-and-monitoring/08-api-project-read
 covers: [AC-19, AC-20, AC-21, AC-22, AC-23, AC-24, AC-25, AC-26, AC-27, AC-30]

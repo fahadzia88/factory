@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 15-app-control-actions
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/15-app-control-actions
 base: feat/008-deployment-and-monitoring/14-app-pod-logs
 covers: [AC-19, AC-20, AC-21, AC-22, AC-23, AC-26, AC-28, AC-31]

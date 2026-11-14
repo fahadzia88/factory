@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 12-app-project-link
 layer: app
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/12-app-project-link
 base: feat/008-deployment-and-monitoring/11-app-cluster-page
 covers: [AC-10, AC-32, AC-31]

@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 18-infra-docs
 layer: infra
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/18-infra-docs
 base: feat/008-deployment-and-monitoring/17-app-nav
 covers: [AC-38]

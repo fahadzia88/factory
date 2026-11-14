@@ -2,8 +2,8 @@
 feature: 008-deployment-and-monitoring
 task: 05-api-client-streams
 layer: api
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 branch: feat/008-deployment-and-monitoring/05-api-client-streams
 base: feat/008-deployment-and-monitoring/04-api-client-calls
 covers: [AC-16, AC-17, AC-37]
