@@ -1,7 +1,7 @@
 ---
 feature: 008-deployment-and-monitoring
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 ---
 
 # Deployment and Monitoring: task breakdown
@@ -177,3 +177,4 @@ The app has no test runner (scripts are `build`, `typecheck`, `format`), so app 
 ## Changelog
 
 - 2026-11-14 — Created.
+- 2026-11-14 — Approved by the user.
