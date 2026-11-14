@@ -32,6 +32,9 @@ services:
       # pull requests. Separate from the read-only API_GITHUB_TOKEN above. Sent per git command as
       # a header, never written to disk. Blank: checkout, fetch, push and pull requests answer 503.
       GIT_TOKEN: ${API_GIT_TOKEN:-}
+      # Bearer token of the HomeLab Controller, which effectively grants cluster-admin access. Used by the api
+      # only (never the app or agent) and never returned or logged. Blank: cluster screens answer "not configured".
+      CONTROLLER_API_TOKEN: ${CONTROLLER_API_TOKEN:-}
     ports:
       - "8080:8080"
     depends_on:
