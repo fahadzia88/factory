@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpMethod
 import org.springframework.stereotype.Component
 import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.JsonNode
 
 /** One request to the controller: [path] is a template whose `{vars}` are encoded, [query] skips null values. */
 data class HomelabRequest(
@@ -28,10 +29,24 @@ class HomelabCall(private val clients: HomelabClients) {
 
 	/** Runs [request] against [address] and reads the JSON answer as [type]. */
 	fun <T> call(address: String, request: HomelabRequest, type: TypeReference<T>): T {
-		val body = send(address, request)
+		return parse(send(address, request), type)
+	}
+
+	/** Reads [body] as [type]; an empty or malformed body is reported as an unreadable controller answer. */
+	fun <T> parse(body: String?, type: TypeReference<T>): T {
 		if (body.isNullOrBlank()) throw HomelabUnreachableException(UNREADABLE)
 		return try {
 			HomelabJson.mapper.readValue(body, type)
+		} catch (_: Exception) {
+			throw HomelabUnreachableException(UNREADABLE)
+		}
+	}
+
+	/** Reads [body] as a JSON tree, with the same failure as [parse]. */
+	fun tree(body: String?): JsonNode {
+		if (body.isNullOrBlank()) throw HomelabUnreachableException(UNREADABLE)
+		return try {
+			HomelabJson.mapper.readTree(body)
 		} catch (_: Exception) {
 			throw HomelabUnreachableException(UNREADABLE)
 		}
