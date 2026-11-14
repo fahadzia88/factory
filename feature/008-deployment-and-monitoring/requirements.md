@@ -26,7 +26,13 @@ Signed-in operators of this app who deploy and watch their projects' workloads o
   - events list filtered by namespace and type;
   - live pod state through the controller's watch stream, proxied by the backend as SSE.
 - **Control actions** (workloads and pods): restart, scale (0-100), change image (with container when the pod has more than one), restart pod (with force when the pod has no owner), and apply YAML/JSON.
-- **Backend client** for the controller in `api/`, with its own endpoints for the UI behind this app's auth.
+- **Create from the UI.** On a project's Deployment tab:
+  - forms to define a workload (kind Deployment or StatefulSet, name, image reference, replicas, container port, environment variables) and a ConfigMap (name, key/value entries). Each form generates YAML;
+  - a raw YAML/JSON editor with starter templates (Deployment, StatefulSet, ConfigMap) where the generated YAML can be edited;
+  - both go through the same dry run, then confirmed apply flow, with `namespace` defaulting to one of the project's namespaces.
+- **Namespace registration.** A project registers existing namespaces by name. The app checks the name against `/api/namespaces` and shows the controller's message when it isn't managed. The app does not create namespaces.
+- **Backend client** for the controller in `api/`: one function per endpoint, typed responses, a typed error carrying `status` and the controller's `message`, a 10 s timeout on normal requests and none on streams, and cancellable streams. It has its own endpoints for the UI behind this app's auth, including an SSE passthrough for watch and a streaming passthrough for logs.
+- **Docs.** A short document listing the configuration variables and how to point the app at the controller.
 - **Async follow-up.** After restart, scale or image, the UI polls the workload every 2-3 s until `ready`, `failed` or `scaled-down`, with a 5-minute timeout.
 - **Configuration.** The bearer token comes from `CONTROLLER_API_TOKEN` (backend config/secret). The cluster address comes from the cluster record, not from an environment variable.
 
@@ -37,7 +43,9 @@ Signed-in operators of this app who deploy and watch their projects' workloads o
 - No allowlist of cluster addresses.
 - No per-user roles or permissions beyond this app's existing sign-in.
 - No several clusters per project; a project links to one cluster.
-- No creating or deleting namespaces, and no cluster-scoped object changes (the controller refuses them).
+- No creating or deleting namespaces, and no cluster-scoped object changes (the controller has no endpoint for it and refuses them in apply). Namespaces are only registered.
+- No creating or managing pull secrets; "image source" is an image reference only (`registry/name:tag`).
+- No forms for kinds other than Deployment, StatefulSet and ConfigMap; anything else goes through the YAML editor.
 - No metrics history or charts beyond the current values from `/api/metrics`.
 
 ## Assumptions
@@ -106,7 +114,16 @@ Signed-in operators of this app who deploy and watch their projects' workloads o
 - **AC-30** — Given a user who isn't signed in, when they call any new backend endpoint, then the request is rejected by this app's auth and the controller isn't called.
 - **AC-31** — Given a phone-width screen, when a user uses the cluster and deployment screens, then they remain usable without horizontal page scrolling.
 
+- **AC-32** — Given a project with a cluster, when a user registers a namespace name that exists and is managed, then it is saved; when the name isn't in `/api/namespaces` or the controller refuses it, then the controller's message is shown and nothing is saved.
+- **AC-33** — Given the workload form, when a user enters kind, name, image reference, replicas (0-100), a container port and environment variables and submits, then YAML is generated and shown for review in the namespace they picked from the project's namespaces; an empty name or image is rejected next to the field.
+- **AC-34** — Given the ConfigMap form, when a user enters a name and key/value entries, then YAML is generated and shown for review.
+- **AC-35** — Given the YAML editor, when a user picks a Deployment, StatefulSet or ConfigMap template or opens generated YAML, then the text can be edited before it goes through the dry run and confirmed apply flow.
+- **AC-36** — Given a workload created through apply, when the apply succeeds, then the workload appears in the project's list and its status is followed until `ready`, `failed` or `scaled-down`.
+- **AC-37** — Given the controller client, when its automated tests run with the HTTP layer mocked, then they check the `Authorization: Bearer` header, the mapping of 400, 401, 403, 404, 409, 413, 422, 502 and 503 to a typed error carrying `status` and the controller's message, the apply 422 results, a 10 s timeout on normal requests, and SSE parsing (event, data, keep-alives ignored, reconnect with backoff, cancel).
+- **AC-38** — Given a repository checkout, when a developer reads the new docs, then they list `CONTROLLER_API_TOKEN` and how to add a cluster address (Docker `http://homelabs001:8088` or in-cluster `http://controller.controller.svc:3000`) and link a project.
+
 ## Changelog
 
 - 2026-11-14 — Created.
+- 2026-11-14 — Added create-from-UI (forms plus YAML editor), namespace registration (no creation), client, tests and docs deliverables; AC-32 to AC-38.
 - 2026-11-14 — Drafted from the controller brief and the user's answers (global clusters, per-project namespaces, one env token, no agent tools).
