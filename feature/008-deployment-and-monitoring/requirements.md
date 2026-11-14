@@ -1,7 +1,7 @@
 ---
 feature: 008-deployment-and-monitoring
-status: draft
-approved:
+status: approved
+approved: 2026-11-14
 ---
 
 # Deployment and Monitoring
@@ -125,5 +125,6 @@ Signed-in operators of this app who deploy and watch their projects' workloads o
 ## Changelog
 
 - 2026-11-14 — Created.
+- 2026-11-14 — Approved by the user.
 - 2026-11-14 — Added create-from-UI (forms plus YAML editor), namespace registration (no creation), client, tests and docs deliverables; AC-32 to AC-38.
 - 2026-11-14 — Drafted from the controller brief and the user's answers (global clusters, per-project namespaces, one env token, no agent tools).
